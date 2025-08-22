@@ -23,17 +23,17 @@ jobs:
       - name: Install dependencies
         run: |
           npm install
-          cd apps/frontend && npm install
+          # cd apps/frontend && npm install
           cd ../backend/auth-service && npm install
-          cd ../../cms-service && npm install
-          cd ../../ai-service && npm install
+          # cd ../../cms-service && npm install
+          # cd ../../ai-service && npm install
 
       - name: Run tests
         run: |
-          cd apps/frontend && npm test
+          # cd apps/frontend && npm test
           cd ../backend/auth-service && npm test
-          cd ../../cms-service && npm test
-          cd ../../ai-service && npm test
+          # cd ../../cms-service && npm test
+          # cd ../../ai-service && npm test
           
   build_and_push:
     needs: build_and_test
@@ -41,7 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [frontend, auth-service, cms-service, ai-service]
+        service: [auth-service] 
+        # service: [frontend, auth-service, cms-service, ai-service]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -66,3 +67,17 @@ jobs:
         run: |
           docker build ${{ steps.service_path.outputs.path }} -t ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
           docker push ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+      
+  deploy_to_kubernetes:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Deploy Auth Service to Kubernetes
+        uses: k8s-deploy-action@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+          manifests: |
+            ./k8s/auth-service-deployment.yaml

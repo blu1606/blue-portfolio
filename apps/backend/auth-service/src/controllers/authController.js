@@ -43,6 +43,21 @@ class AuthController {
             metadata: { token },
         }).send(res);
     });
+
+    getMe = asyncHandler(async (req, res, next) => {
+        const user = req.user; // Lấy thông tin người dùng từ middleware
+        new SuccessResponse({
+            message: 'User profile fetched successfully!',
+            metadata: user,
+        }).send(res);
+    });
+
+    logout = asyncHandler(async (req, res, next) => {
+        new SuccessResponse({
+            message: 'Logout successful!',
+        }).send(res);
+    });
+
 }
 
 module.exports = new AuthController();
