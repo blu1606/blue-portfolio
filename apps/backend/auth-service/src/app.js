@@ -20,7 +20,7 @@ app.use(express.json()); // Phân tích JSON body
 app.use(express.urlencoded({ extended: true })); // Phân tích URL-encoded body
 
 // init routes
-// app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 // Handling error (404 Not Found)
 app.use((req, res, next) => {
@@ -31,11 +31,11 @@ app.use((req, res, next) => {
 
 // Handling general error
 app.use((error, req, res, next) => {
-    const statusCode = error.status || 500;
+    const statusCode = error.status || statusCode.INTERNAL_SERVER_ERROR;
     return res.status(statusCode).json({
         status: 'error',
         code: statusCode,
-        message: error.message || 'Internal Server Error'
+        message: error.message || reasonPhrases.INTERNAL_SERVER_ERROR
     });
 });
 
