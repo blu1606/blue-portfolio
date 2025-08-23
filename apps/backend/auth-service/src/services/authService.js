@@ -2,7 +2,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../db/initSupabase');
-const { ConflictRequestError, BadRequestError, AuthFailureError } = require('../core/error.response');
+const { ConflictRequestError, BadRequestError, AuthFailureError } = require('common/core/error.response');
 
 const registerUser = async ({ username, email, password }) => {
     // Kiểm tra xem email đã tồn tại chưa

@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Deploy Auth Service to Kubernetes
-        uses: k8s-deploy-action@v1
+        uses: gts-labs/k8s-deploy-action@v1
         with:
           kubeconfig: ${{ secrets.KUBE_CONFIG }}
           manifests: |

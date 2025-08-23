@@ -1,7 +1,7 @@
 const authService = require('../services/authService');
-const { SuccessResponse, CREATED } = require('../core/success.response.js'); 
-const { ErrorResponse, ConflictRequestError, BadRequestError, AuthFailureError} = require('../core/error.response.js')
-const asyncHandler = require('../helpers/asyncHandler'); 
+const { SuccessResponse, CREATED } = require('common/core/success.response.js'); 
+const { ErrorResponse, ConflictRequestError, BadRequestError, AuthFailureError} = require('common/core/error.response.js')
+const asyncHandler = require('common/helpers/asyncHandler'); 
 class AuthController {
     register = asyncHandler(async (req, res, next) => {
         const { username, email, password } = req.body;
