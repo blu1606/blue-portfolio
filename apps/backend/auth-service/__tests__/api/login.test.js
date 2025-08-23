@@ -99,7 +99,7 @@ describe('Login API Endpoints', () => {
             supabase.from.mockImplementation(() => ({
                 select: jest.fn().mockReturnValue({
                     eq: jest.fn().mockReturnValue({
-                        single: jest.fn().mockResolvedValue({ data: null, error: { message: 'not found' } })
+                        single: jest.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } })
                     })
                 })
             }));

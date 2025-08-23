@@ -26,9 +26,16 @@ class AuthFailureError extends ErrorResponse {
     }
 }
 
+class ValidationError extends ErrorResponse {
+    constructor(message = ReasonPhrases.BAD_REQUEST, status = StatusCodes.BAD_REQUEST) {
+        super(message, status);
+    }
+}
+
 module.exports = {
     ErrorResponse,
     ConflictRequestError,
     BadRequestError,
     AuthFailureError,
+    ValidationError,
 };
