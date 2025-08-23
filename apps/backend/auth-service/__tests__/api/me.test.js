@@ -4,7 +4,13 @@ const app = require('../../src/app');
 
 describe('GET /api/v1/auth/me', () => {
     const mockToken = 'valid-jwt-token';
-    const mockPayload = { id: 'user123', username: 'testuser' };
+    const mockPayload = { 
+        user: { 
+            id: 'user123', 
+            username: 'testuser', 
+            email: 'test@example.com' 
+        } 
+    };
 
     it('should return 200 OK and user info for a valid token', async () => {
         const response = await request(app)
@@ -12,7 +18,7 @@ describe('GET /api/v1/auth/me', () => {
             .set('Authorization', `Bearer ${mockToken}`);
 
         expect(response.status).toBe(200);
-        expect(response.body.message).toEqual('User profile fetched successfully!');
+        expect(response.body.message).toEqual('User profile retrieved successfully!');
         expect(response.body.metadata).toEqual(mockPayload);
     });
 
