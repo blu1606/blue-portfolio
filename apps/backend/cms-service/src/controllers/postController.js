@@ -26,6 +26,20 @@ const createPostController = (container) => {
                 message: result.message,
                 metadata: result.post
             }).send(res);
+        }),
+
+        searchPosts: asyncHandler(async (req, res) => {
+            const { query } = req.query;
+            const searchPostsUseCase = container.get('searchPostsUseCase');
+            const result = await searchPostsUseCase(query);
+            
+            new SuccessResponse({
+                message: result.message,
+                metadata: {
+                    posts: result.posts,
+                    total: result.totalResults,
+                },
+            }).send(res);
         })
     }
 }
