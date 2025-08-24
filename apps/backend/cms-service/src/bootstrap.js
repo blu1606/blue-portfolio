@@ -17,10 +17,17 @@ const setupContainer = () => {
   container.register('postRepository', (container) => {
     return createPostRepository(container.get('supabase'));
   }, { singleton: true });
+  container.register('mediaRepository', (container) => {
+    return createMediaRepository(container.get('supabase'));
+  }, { singleton: true });
 
   // Use case layer
   container.register('createPostUseCase', (container) => {
-    return createCreatePostUseCase(container.get('postRepository'));
+    return createCreatePostUseCase(
+      container.get('postRepository'),
+      container.get('cloudinaryService'),
+      container.get('mediaRepository')
+    );
   });
 
   container.register('getPostUseCase', (container) => {
