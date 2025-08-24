@@ -4,9 +4,12 @@ const supabase = require('./db/initSupabase');
 
 // Import factory functions
 const { createPostRepository } = require('./repositories/postRepository');
-const { createCreatePostUseCase } = require('./usecases/createPost');
-const { createGetPostUseCase } = require('./usecases/getPost');
-const { createSearchPostsUseCase } = require('./usecases/searchPosts');
+const { createCreatePostUseCase } = require('./usecases/post/createPost');
+const { createDeletePostUseCase } = require('./usecases/post/deletePost');
+const { createGetAllPostsUseCase } = require('./usecases/post/getAllPost');
+const { createGetPostUseCase } = require('./usecases/post/getPost');
+const { createSearchPostsUseCase } = require('./usecases/post/searchPosts');
+const { createUpdatePostUseCase } = require('./usecases/post/updatePost');
 
 const setupContainer = () => {
   const container = new Container();
@@ -21,6 +24,10 @@ const setupContainer = () => {
   container.register('mediaRepository', (container) => {
     return createMediaRepository(container.get('supabase'));
   }, { singleton: true });
+  container.register('feedbackRepository', (container) => {
+    return createFeedbackRepository(container.get('supabase'));
+  }, { singleton: true });
+
 
   // Use case layer
   container.register('createPostUseCase', (container) => {
@@ -54,6 +61,16 @@ const setupContainer = () => {
   container.register('getAllPostsUseCase', (container) => {
     return createGetAllPostsUseCase(container.get('postRepository'), container.get('cacheService'));
   });
+  container.register('createFeedbackUseCase', (container) => {
+        return createCreateFeedbackUseCase(container.get('feedbackRepository'));
+  });
+  container.register('getFeedbacksUseCase', (container) => {
+      return createGetFeedbacksUseCase(container.get('feedbackRepository'));
+  });
+  container.register('approveFeedbackUseCase', (container) => {
+    return createApproveFeedbackUseCase(container.get('feedbackRepository'));
+  });
+
 
   // Service layer
   container.register('cacheService', (container) => {

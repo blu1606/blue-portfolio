@@ -1,6 +1,6 @@
 // src/usecases/searchPosts.js
 const { BadRequestError } = require('common/core/error.response');
-const { createUnaccentedRegexPattern, escapeRegexSpecialChars, validateSearchQuery } = require('../utils/search.utils');
+const { createUnaccentedRegexPattern, escapeRegexSpecialChars, validateSearchQuery } = require('../../utils/search.utils');
 
 /**
  * Tạo use case tìm kiếm bài viết
