@@ -26,7 +26,9 @@ router.use(authenticationMiddleware);
 // ===================== PROTECTED ROUTES =====================
 
 // Create a new post
-router.post('/',
+router.post(
+    '/',
+    upload.array('media', 10), // Cho phép upload tối đa 10 file với key là 'media'
     validateRequest(postSchema),
     postController.createPost
 );
