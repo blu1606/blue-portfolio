@@ -30,6 +30,10 @@ const setupContainer = () => {
     );
   });
 
+  container.register('searchPostsUseCase', (container) => {
+    return createSearchPostsUseCase(container.get('postRepository'));
+  });
+
   container.register('getPostUseCase', (container) => {
     return createGetPostUseCase(container.get('postRepository'));
   });
