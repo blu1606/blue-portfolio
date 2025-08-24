@@ -2,14 +2,18 @@
 const createContainer = () => {
   const services = new Map();
   const factories = new Map();
+  const options = new Map();
 
-  const register = (name, factory) => {
+  const register = (name, factory, opts = {}) => {
     factories.set(name, factory);
+    options.set(name, opts);
   };
 
   const get = (name) => {
-    // Return cached instance if exists
-    if (services.has(name)) {
+    const opts = options.get(name) || {};
+    
+    // Return cached singleton if exists
+    if (opts.singleton && services.has(name)) {
       return services.get(name);
     }
 
@@ -19,9 +23,13 @@ const createContainer = () => {
       throw new Error(`Service ${name} not found`);
     }
 
-    // Lazy instantiation
-    const instance = factory();
-    services.set(name, instance); // Cache the instance
+    // Lazy instantiation - pass container to factory if it's a function
+    const instance = typeof factory === 'function' ? factory(containerInstance) : factory;
+    
+    if (opts.singleton) {
+      services.set(name, instance);
+    }
+    
     return instance;
   };
 
@@ -32,9 +40,17 @@ const createContainer = () => {
   const clear = () => {
     services.clear();
     factories.clear();
+    options.clear();
   };
 
-  return { register, get, has, clear };
+  const containerInstance = { register, get, has, clear };
+  return containerInstance;
 };
 
-module.exports = { createContainer };
+class Container {
+  constructor() {
+    return createContainer();
+  }
+}
+
+module.exports = { Container, createContainer };

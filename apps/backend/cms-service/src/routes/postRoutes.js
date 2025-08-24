@@ -4,6 +4,7 @@ const { setupContainer } = require('../bootstrap');
 const { createPostController } = require('../controllers/postController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
 const { validateRequest } = require('common/middlewares/validationMiddleware');
+const upload = require('../utils/multer');
 
 const router = express.Router();
 const container = setupContainer();
@@ -14,6 +15,14 @@ const postSchema = {
     body: {
         title: { type: 'string', minLength: 5, maxLength: 255 },
         content: { type: 'string', minLength: 10 },
+    }
+};
+
+const updatePostSchema = {
+    body: {
+        title: { type: 'string', minLength: 5, maxLength: 255, optional: true },
+        content: { type: 'string', minLength: 10, optional: true },
+        is_published: { type: 'boolean', optional: true }
     }
 };
 

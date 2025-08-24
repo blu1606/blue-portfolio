@@ -63,8 +63,8 @@ const createPostRepository = (supabase) => {
         return data;
     }
     
-    const update = (postId, updateData) => {
-        const {data, error} = supabase
+    const update = async (postId, updateData) => {
+        const { data, error } = await supabase
             .from('posts')
             .update(updateData)
             .eq('id', postId)
@@ -114,7 +114,7 @@ const createPostRepository = (supabase) => {
 
         if (error) {
             console.error('Database error during search:', error);
-            throw new Error('Failed to perform search.');
+            throw new BadRequestError('Failed to perform search.');
         }
         return data;
     };
@@ -133,7 +133,7 @@ const createPostRepository = (supabase) => {
         
         if (error) {
             console.error('Database count error:', error);
-            throw new Error('Failed to count search results.');
+            throw new BadRequestError('Failed to count search results.');
         }
         return count;
     };
@@ -147,7 +147,7 @@ const createPostRepository = (supabase) => {
 
       if (error) {
         console.error('Database error fetching paginated posts:', error);
-        throw new Error('Failed to retrieve posts.');
+        throw new BadRequestError('Failed to retrieve posts.');
       }
       return data;
     };
@@ -159,7 +159,7 @@ const createPostRepository = (supabase) => {
 
       if (error) {
         console.error('Database error counting posts:', error);
-        throw new Error('Failed to count posts.');
+        throw new BadRequestError('Failed to count posts.');
       }
       return count;
     };

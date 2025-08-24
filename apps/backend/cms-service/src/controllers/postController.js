@@ -6,11 +6,11 @@ const createPostController = (container) => {
     return {
         createPost: asyncHandler(async (req, res) => {
             const { title, content } = req.body;
-            const authorId = req.user.id; // req.user has been transfer from authenticationMiddlerware
+            const authorId = req.user.id; // req.user has been transfer from authenticationMiddleware
             const files = req.files || []; // retrieve files from multer
 
-            const createPostUsecase = container.get('createPostUseCase');
-            const result = await createPostUsecase(title, content, authorId, files);
+            const createPostUseCase = container.get('createPostUseCase');
+            const result = await createPostUseCase(title, content, authorId, files);
             new CREATED({
                 message: result.message,
                 metadata: result.post
@@ -63,8 +63,8 @@ const createPostController = (container) => {
         getPostBySlug: asyncHandler(async (req, res) => {
             const { slug } = req.params;
 
-            const getPostUsecase = container.get('getPostUsecase');
-            const result = await getPostUsecase(slug);
+            const getPostUseCase = container.get('getPostUseCase');
+            const result = await getPostUseCase(slug);
             new SuccessResponse({
                 message: result.message,
                 metadata: result.post

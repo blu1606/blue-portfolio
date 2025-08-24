@@ -1,4 +1,5 @@
 // src/app.js
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,6 +7,8 @@ const compression = require('compression');
 const morgan = require('morgan');
 
 const postRoutes = require('./routes/postRoutes');
+const commentRoutes = require('./routes/commentRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 
 const app = express();
 
@@ -25,6 +28,8 @@ app.use(compression());
 
 // Routes
 app.use('/api/v1/posts', postRoutes);
+app.use('/api/v1/comments', commentRoutes);
+app.use('/api/v1/feedback', feedbackRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -53,13 +58,19 @@ app.use((error, req, res, next) => {
     message: error.message,
     stack: error.stack,
     url: req.url,
-    method: req.method
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    userAgent: req.get('User-Agent'),
+    ip: req.ip
   });
 
   res.status(statusCode).json({
     success: false,
     message,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    ...(process.env.NODE_ENV === 'development' && { 
+      stack: error.stack,
+      details: error
+    })
   });
 });
 

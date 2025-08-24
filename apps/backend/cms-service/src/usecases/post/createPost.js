@@ -1,15 +1,15 @@
 const slugify = require('slugify');
 const { BadRequestError, ConflictRequestError } = require('common/core/error.response');
 
-const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository) => {
-    return async (title, content, authorId ) => {
+const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService) => {
+    return async (title, content, authorId, files = []) => {
         if (!title || !content || !authorId) throw new BadRequestError('Missing required fields');
 
         const slug = slugify(title, { lower: true, strict: true})
 
         // check if post with the same slug already exist or not
         const existingPost = await postRepository.findBySlug(slug);
-        if (existingPost) throw new ConflictRequestError('A Post with the same title already exists.')
+        if (existingPost) throw new ConflictRequestError('A Post with the same title already exists.');
         
         const postData = {
             title, 
