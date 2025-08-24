@@ -1,40 +1,66 @@
-// /cms-service/src/app.js
+// src/app.js
 const express = require('express');
-const morgan = require('morgan');
+const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const cors = require('cors');
+const morgan = require('morgan');
 
-const cmsRoutes = require('./routes/cmsRoutes');
+const postRoutes = require('./routes/postRoutes');
 
 const app = express();
 
-// init middlewares
-app.use(morgan('dev'));
+// Security middlewares
 app.use(helmet());
-app.use(compression());
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// init routes
-app.use('/api/v1', cmsRoutes); // Đường dẫn gốc cho các route của CMS
+// Body parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Handling error (404 Not Found)
-app.use((req, res, next) => {
-    const error = new Error('Not Found');
-    error.status = 404;
-    next(error);
+// Logging
+app.use(morgan('combined'));
+
+// Compression
+app.use(compression());
+
+// Routes
+app.use('/api/v1/posts', postRoutes);
+
+// Health check
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    service: 'cms-service'
+  });
 });
 
-// Handling general error
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    requestedUrl: req.originalUrl
+  });
+});
+
+// Global error handler
 app.use((error, req, res, next) => {
-    const statusCode = error.status || 500;
-    return res.status(statusCode).json({
-        status: 'error',
-        code: statusCode,
-        message: error.message || 'Internal Server Error'
-    });
+  const statusCode = error.statusCode || 500;
+  const message = error.message || 'Internal Server Error';
+  
+  console.error('Error:', {
+    message: error.message,
+    stack: error.stack,
+    url: req.url,
+    method: req.method
+  });
+
+  res.status(statusCode).json({
+    success: false,
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+  });
 });
 
 module.exports = app;
