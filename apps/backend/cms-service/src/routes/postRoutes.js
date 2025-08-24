@@ -17,7 +17,25 @@ const postSchema = {
     }
 };
 
-// Public route to get a post by slug
+const searchSchema = {
+    query: {
+        query: { type: 'string', minLength: 2 },
+        limit: { type: 'number', optional: true, min: 1, max: 100 },
+        offset: { type: 'number', optional: true, min: 0 }
+    }
+};
+
+
+// ===================== PUBLIC ROUTES =====================
+
+// Search posts
+router.get('/search',
+    validateRequest(searchSchema),
+    postController.searchPosts
+);
+
+
+// Get a single post by slug
 router.get('/:slug', postController.getPostBySlug);
 
 // Apply authentication middleware to all routes below

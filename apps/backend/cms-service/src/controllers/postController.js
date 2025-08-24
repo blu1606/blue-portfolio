@@ -29,16 +29,16 @@ const createPostController = (container) => {
         }),
 
         searchPosts: asyncHandler(async (req, res) => {
-            const { query } = req.query;
+            const { query, limit, offset } = req.query;
             const searchPostsUseCase = container.get('searchPostsUseCase');
-            const result = await searchPostsUseCase(query);
-            
+            const result = await searchPostsUseCase(query, {
+                limit: parseInt(limit) || 20,
+                offset: parseInt(offset) || 0
+            });
+
             new SuccessResponse({
                 message: result.message,
-                metadata: {
-                    posts: result.posts,
-                    total: result.totalResults,
-                },
+                metadata: result,
             }).send(res);
         })
     }
