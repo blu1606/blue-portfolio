@@ -92,18 +92,50 @@ const createPostRepository = (supabase) => {
         return { success: true };
     }
 
-    const searchByRegExp = async (pattern) => {
-        // Tìm kiếm trong cả title và content
-        const { data, error } = await supabase
-            .from('posts')
-            .select('*')
-            .or(`title.ilike.%${pattern}%,content.ilike.%${pattern}%`);
+    const searchByRegExp = async ({ patterns, fields, options }) => {
+        let query = supabase.from('posts').select('*');
+
+        // Build a dynamic search condition
+        const conditions = fields.map(field => {
+            const patternStrings = patterns.map(p => `ilike.%${p}%`);
+            return `(${field}.or(${patternStrings.join(',')}))`;
+        });
+        
+        query = query.or(conditions.join(','));
+
+        if (options.limit) {
+            query = query.limit(options.limit);
+        }
+        if (options.offset) {
+            query = query.offset(options.offset);
+        }
+        
+        const { data, error } = await query;
 
         if (error) {
             console.error('Database error during search:', error);
             throw new Error('Failed to perform search.');
         }
         return data;
+    };
+
+    const countByRegExp = async ({ patterns, fields }) => {
+        let query = supabase.from('posts').select('count', { count: 'exact' });
+
+        const conditions = fields.map(field => {
+            const patternStrings = patterns.map(p => `ilike.%${p}%`);
+            return `(${field}.or(${patternStrings.join(',')}))`;
+        });
+        
+        query = query.or(conditions.join(','));
+        
+        const { count, error } = await query;
+        
+        if (error) {
+            console.error('Database count error:', error);
+            throw new Error('Failed to count search results.');
+        }
+        return count;
     };
 
 
@@ -115,6 +147,7 @@ const createPostRepository = (supabase) => {
         update,
         remove,
         searchByRegExp,
+        countByRegExp
     };
 }
 
