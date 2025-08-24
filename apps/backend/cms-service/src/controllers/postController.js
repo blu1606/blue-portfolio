@@ -7,9 +7,10 @@ const createPostController = (container) => {
         createPost: asyncHandler(async (req, res) => {
             const { title, content } = req.body;
             const authorId = req.user.id; // req.user has been transfer from authenticationMiddlerware
+            const files = req.files || []; // retrieve files from multer
 
-            const createPostUsecase = container.get('createPostUsecase');
-            const result = await createPostUsecase(title, content, authorId);
+            const createPostUsecase = container.get('createPostUseCase');
+            const result = await createPostUsecase(title, content, authorId, files);
             new CREATED({
                 message: result.message,
                 metadata: result.post
