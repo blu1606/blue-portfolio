@@ -37,9 +37,19 @@ const setupContainer = () => {
   container.register('getPostUseCase', (container) => {
     return createGetPostUseCase(container.get('postRepository'));
   });
+
+  container.register('updatePostUseCase', (container) => {
+    return createUpdatePostUseCase(container.get('postRepository'));
+  });
+
+  container.register('deletePostUseCase', (container) => {
+    return createDeletePostUseCase(container.get('postRepository'));
+  });
   
-  // TODO: Register other use cases here
-  
+  container.register('getAllPostsUseCase', (container) => {
+    return createGetAllPostsUseCase(container.get('postRepository'));
+  });
+
   return container;
 };
 
