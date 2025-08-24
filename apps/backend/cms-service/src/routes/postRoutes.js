@@ -38,6 +38,10 @@ router.get('/search',
 // Get a single post by slug
 router.get('/:slug', postController.getPostBySlug);
 
+// get all posts
+router.get('/', postController.getAllPosts);
+
+
 // Apply authentication middleware to all routes below
 router.use(authenticationMiddleware);
 
@@ -51,9 +55,16 @@ router.post(
     postController.createPost
 );
 
-// TODO: Add routes for update, delete, get all posts
-// router.put('/:id', ...)
-// router.delete('/:id', ...)
-// router.get('/', ...)
+// updatePost
+router.put('/:postId',
+    validateRequest(updatePostSchema),
+    postController.updatePost
+);
+
+// deletePost
+router.delete('/:postId',
+    postController.deletePost
+);
+
 
 module.exports = router;

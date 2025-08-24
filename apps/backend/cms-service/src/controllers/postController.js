@@ -17,6 +17,44 @@ const createPostController = (container) => {
             }).send(res);
         }),
 
+        getAllPosts: asyncHandler(async (req, res) => {
+            const getAllPostsUseCase = container.get('getAllPostsUseCase');
+            const result = await getAllPostsUseCase();
+            
+            new SuccessResponse({
+                message: 'Posts retrieved successfully!',
+                metadata: result,
+            }).send(res);
+        }),
+
+        // Cập nhật bài viết
+        updatePost: asyncHandler(async (req, res) => {
+            const { postId } = req.params;
+            const authorId = req.user.id;
+            const updateData = req.body;
+            
+            const updatePostUseCase = container.get('updatePostUseCase');
+            const result = await updatePostUseCase(postId, authorId, updateData);
+            
+            new SuccessResponse({
+                message: result.message,
+                metadata: result.post,
+            }).send(res);
+        }),
+
+        // Xóa bài viết
+        deletePost: asyncHandler(async (req, res) => {
+            const { postId } = req.params;
+            const authorId = req.user.id;
+            
+            const deletePostUseCase = container.get('deletePostUseCase');
+            const result = await deletePostUseCase(postId, authorId);
+            
+            new SuccessResponse({
+                message: result.message,
+            }).send(res);
+        }),
+
         getPostBySlug: asyncHandler(async (req, res) => {
             const { slug } = req.params;
 
