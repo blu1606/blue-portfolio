@@ -27,6 +27,10 @@ const setupContainer = () => {
   container.register('feedbackRepository', (container) => {
     return createFeedbackRepository(container.get('supabase'));
   }, { singleton: true });
+  container.register('commentRepository', (container) => {
+    return createCommentRepository(container.get('supabase'));
+  }, { singleton: true });
+
 
 
   // Use case layer
@@ -45,7 +49,7 @@ const setupContainer = () => {
       container.get('cacheService')
     );
   });
-
+  
   container.register('getPostUseCase', (container) => {
     return createGetPostUseCase(container.get('postRepository'), container.get('cacheService'));
   });
@@ -61,6 +65,7 @@ const setupContainer = () => {
   container.register('getAllPostsUseCase', (container) => {
     return createGetAllPostsUseCase(container.get('postRepository'), container.get('cacheService'));
   });
+  // feedback usecase
   container.register('createFeedbackUseCase', (container) => {
         return createCreateFeedbackUseCase(container.get('feedbackRepository'));
   });
@@ -73,6 +78,20 @@ const setupContainer = () => {
   container.register('getAllFeedbacksUseCase', (container) => {
         return createGetAllFeedbacksUseCase(container.get('feedbackRepository'));
   });
+  // comment usecase
+  container.register('createCommentUseCase', (container) => {
+    return createCreateCommentUseCase(
+        container.get('commentRepository'),
+        container.get('postRepository') // Comment cần biết về Post
+    );
+  });
+  container.register('getCommentsByPostUseCase', (container) => {
+      return createGetCommentsByPostUseCase(container.get('commentRepository'));
+  });
+  container.register('deleteCommentUseCase', (container) => {
+      return createDeleteCommentUseCase(container.get('commentRepository'));
+  });
+
 
 
   // Service layer
