@@ -1,28 +1,108 @@
+// src/repositories/postRepository.js
+const { BadRequestError, NotFoundError } = require('common/core/error.response');
 
-const createPost = (postData) => {
+const createPostRepository = (supabase) => {
+    const create =  async (postData) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .insert([postData])
+            .select()
+            .single();
+        
+        if (error) {
+            console.log('Database error creating post: ', error);
+            throw new BadRequestError('Failed to create post');
+        }
+        return data; 
+    };
 
+    const findBySlug = async (slug) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('slug', slug)
+            .single();
+
+        if (error && error.code === 'PGRST116') {
+            return null; // Post not found
+        }
+        if (error) {
+            console.error('Database error finding post:', error);
+            throw new BadRequestError('Failed to find post.');
+        }
+        return data;
+    }
+
+    const findById = async (postId) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('id', postId)
+            .single();
+        
+        if (error && error.code === 'PGRST116') {
+            return null; // Post not found
+        }
+        if (error) {
+            console.error('Database error finding post:', error);
+            throw new BadRequestError('Failed to find post.');
+        }
+        return data;
+    }
+    
+    const getAll = async () => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Database error getting all posts:', error);
+            throw new BadRequestError('Failed to retrieve posts.');
+        }
+        return data;
+    }
+    
+    const update = (postId, updateData) => {
+        const {data, error} = supabase
+            .from('posts')
+            .update(updateData)
+            .eq('id', postId)
+            .select()
+            .single();
+        
+        if (error) {
+          console.error('Database error updating post:', error);
+          throw new BadRequestError('Failed to update post.');
+        }
+        return data;
+    }
+
+    const remove = async (postId) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .delete()
+            .eq('id', postId)
+            .select();
+
+        if (error) {
+            console.error('Database error deleting post:', error);
+            throw new BadRequestError('Failed to delete post.');
+        }
+        return { success: true };
+    }
+
+    return {
+        create,
+        findBySlug,
+        findById,
+        getAll,
+        update,
+        remove,
+    };
 }
 
-const getPostBySlug = (slug) => {
-
-}
-
-const getAllPosts = () => {
-
-}
-
-const updatePost = (postId, updateData) => {
-
-}
-
-const deletePost = (postId) => {
-
-}
 
 module.exports = {
-    createPost,
-    getPostBySlug,
-    getAllPosts,
-    updatePost,
-    deletePost
+    createPostRepository
 }
