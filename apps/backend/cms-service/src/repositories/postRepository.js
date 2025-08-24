@@ -138,6 +138,32 @@ const createPostRepository = (supabase) => {
         return count;
     };
 
+    const getPaginatedPosts = async (limit, offset) => {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, title, slug, created_at, is_published')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('Database error fetching paginated posts:', error);
+        throw new Error('Failed to retrieve posts.');
+      }
+      return data;
+    };
+
+    const countAllPosts = async () => {
+      const { count, error } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Database error counting posts:', error);
+        throw new Error('Failed to count posts.');
+      }
+      return count;
+    };
+
 
     return {
         create,
@@ -147,7 +173,9 @@ const createPostRepository = (supabase) => {
         update,
         remove,
         searchByRegExp,
-        countByRegExp
+        countByRegExp,
+        getPaginatedPosts,
+        countAllPosts
     };
 }
 

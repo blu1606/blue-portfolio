@@ -18,8 +18,13 @@ const createPostController = (container) => {
         }),
 
         getAllPosts: asyncHandler(async (req, res) => {
+            const { limit, offset } = req.query;
             const getAllPostsUseCase = container.get('getAllPostsUseCase');
-            const result = await getAllPostsUseCase();
+            
+            const result = await getAllPostsUseCase(
+                parseInt(limit) || 20,
+                parseInt(offset) || 0
+            );
             
             new SuccessResponse({
                 message: 'Posts retrieved successfully!',

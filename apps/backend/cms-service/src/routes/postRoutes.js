@@ -25,6 +25,13 @@ const searchSchema = {
     }
 };
 
+const paginationSchema = {
+    query: {
+        limit: { type: 'number', optional: true, min: 1, max: 100 },
+        offset: { type: 'number', optional: true, min: 0 }
+    }
+};
+
 
 // ===================== PUBLIC ROUTES =====================
 
@@ -39,8 +46,7 @@ router.get('/search',
 router.get('/:slug', postController.getPostBySlug);
 
 // get all posts
-router.get('/', postController.getAllPosts);
-
+router.get('/', validateRequest(paginationSchema), postController.getAllPosts);
 
 // Apply authentication middleware to all routes below
 router.use(authenticationMiddleware);
