@@ -92,6 +92,21 @@ const createPostRepository = (supabase) => {
         return { success: true };
     }
 
+    const searchByRegExp = async (pattern) => {
+        // Tìm kiếm trong cả title và content
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .or(`title.ilike.%${pattern}%,content.ilike.%${pattern}%`);
+
+        if (error) {
+            console.error('Database error during search:', error);
+            throw new Error('Failed to perform search.');
+        }
+        return data;
+    };
+
+
     return {
         create,
         findBySlug,
@@ -99,6 +114,7 @@ const createPostRepository = (supabase) => {
         getAll,
         update,
         remove,
+        searchByRegExp,
     };
 }
 
