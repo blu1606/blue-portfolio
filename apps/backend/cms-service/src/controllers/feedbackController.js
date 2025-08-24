@@ -38,18 +38,15 @@ const createFeedbackController = (container) => {
         }),
 
         getAllFeedbacksForAdmin: asyncHandler(async (req, res) => {
-            const getFeedbacksUseCase = container.get('getFeedbacksUseCase');
-            // Cần một hàm repository mới để lấy cả feedback chưa duyệt
-            // Ví dụ: const feedbacks = await feedbackRepository.getAll();
-            
-            // Giả định bạn đã có hàm đó, tôi sẽ mô phỏng nó ở đây.
-            const allFeedbacks = await container.get('feedbackRepository').getAll();
+            const getAllFeedbacksUseCase = container.get('getAllFeedbacksUseCase');
+            const result = await getAllFeedbacksUseCase();
             
             new SuccessResponse({
                 message: 'All feedbacks retrieved successfully!',
-                metadata: { feedbacks: allFeedbacks }
+                metadata: result
             }).send(res);
         }),
+
 
     };
 };

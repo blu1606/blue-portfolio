@@ -58,7 +58,21 @@ const createFeedbackRepository = (supabase) => {
                 throw new BadRequestError('Failed to approve feedback.');
             }
             return data;
+        },
+
+        getAll: async () => {
+            const { data, error } = await supabase
+                .from('feedbacks')
+                .select('*')
+                .order('created_at', { ascending: false });
+                
+            if (error) {
+                console.error('Database error getting all feedbacks:', error);
+                throw new BadRequestError('Failed to retrieve all feedbacks.');
+            }
+            return data;
         }
+
     };
 };
 

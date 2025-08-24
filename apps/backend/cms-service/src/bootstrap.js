@@ -70,6 +70,9 @@ const setupContainer = () => {
   container.register('approveFeedbackUseCase', (container) => {
     return createApproveFeedbackUseCase(container.get('feedbackRepository'));
   });
+  container.register('getAllFeedbacksUseCase', (container) => {
+        return createGetAllFeedbacksUseCase(container.get('feedbackRepository'));
+  });
 
 
   // Service layer
