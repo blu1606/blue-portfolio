@@ -38,6 +38,8 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
             }
         }
         
+        await cacheService.del('posts:all');
+
         return {
             message: 'Post created successfully',
             post: newPost

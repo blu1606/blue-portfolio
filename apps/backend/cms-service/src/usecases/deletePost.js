@@ -20,6 +20,14 @@ const createDeletePostUseCase = (postRepository) => {
 
     // 3. Gọi repository để xóa
     await postRepository.remove(postId);
+
+    // 4. Cache Invalidation: Xóa cache liên quan
+    const cacheKey = `post:slug:${existingPost.slug}`;
+    await cacheService.del(cacheKey);
+
+    // Xóa cache của danh sách bài viết để đảm bảo tính đồng bộ
+    await cacheService.del('posts:all');
+
     
     return {
       message: 'Post deleted successfully!'

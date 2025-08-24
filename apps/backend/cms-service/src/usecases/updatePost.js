@@ -34,6 +34,10 @@ const createUpdatePostUseCase = (postRepository) => {
 
         // 4. update post
         const updatedPost = await postRepository.update(postId, updatedFields);
+
+        // 5. Cache invalidation: Xóa cache liên quan
+        const cacheKey = `post:slug:${updatedPost.slug}`;
+        await cacheService.del(cacheKey);
         
         return {
             post: {
