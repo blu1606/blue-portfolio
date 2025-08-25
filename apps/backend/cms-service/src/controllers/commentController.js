@@ -6,22 +6,42 @@ const { ForbiddenError, NotFoundError } = require('common/core/error.response');
 const createCommentController = (container) => {
     return {
         createComment: asyncHandler(async (req, res) => {
-            const { postId } = req.params;
+            const { postId, content, parentId } = req.body;
             const userId = req.user.id;
-            const { content, parentId } = req.body;
             
-            const createCommentUseCase = container.get('createCommentUseCase');
-            const result = await createCommentUseCase(postId, userId, content, parentId);
-            
-            new CREATED({
-                message: result.message,
-                metadata: { id: result.id }
-            }).send(res);
+            try {
+                const createCommentUseCase = container.resolve('createCommentUseCase');
+                const result = await createCommentUseCase(postId, userId, content, parentId);
+                
+                return res.status(201).json({
+                    success: true,
+                    message: 'Comment created successfully',
+                    metadata: result
+                });
+            } catch (error) {
+                if (error.statusCode === 400) {
+                    return res.status(400).json({
+                        success: false,
+                        message: error.message
+                    });
+                } else if (error.statusCode === 404) {
+                    return res.status(404).json({
+                        success: false,
+                        message: error.message
+                    });
+                } else if (error.statusCode === 500) {
+                    return res.status(400).json({
+                        success: false,
+                        message: error.message
+                    });
+                }
+                throw error;
+            }
         }),
 
         getCommentsByPost: asyncHandler(async (req, res) => {
             const { postId } = req.params;
-            const getCommentsByPostUseCase = container.get('getCommentsByPostUseCase');
+            const getCommentsByPostUseCase = container.resolve('getCommentsByPostUseCase');
             const result = await getCommentsByPostUseCase(postId);
             
             new SuccessResponse({
@@ -35,7 +55,7 @@ const createCommentController = (container) => {
             const user = req.user;
             
             // Logic kiểm tra quyền xóa
-            const comment = await container.get('commentRepository').getById(commentId);
+            const comment = await container.resolve('commentRepository').getById(commentId);
             if (!comment) {
                 throw new NotFoundError('Comment not found.');
             }
@@ -44,7 +64,7 @@ const createCommentController = (container) => {
                 throw new ForbiddenError('You do not have permission to delete this comment.');
             }
 
-            const deleteCommentUseCase = container.get('deleteCommentUseCase');
+            const deleteCommentUseCase = container.resolve('deleteCommentUseCase');
             const result = await deleteCommentUseCase(commentId);
             
             new SuccessResponse({
