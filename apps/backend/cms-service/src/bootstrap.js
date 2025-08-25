@@ -36,15 +36,11 @@ const setupContainer = () => {
   container.register('cloudinaryService', () => {
     return createCloudinaryService();
   }, { singleton: true });
-
+  // redis 
+  container.register('redisClient', require('./configs/redis.config'), { singleton: true });
   container.register('cacheService', (container) => {
-    // For now, return a mock cache service since Redis config is missing
-    return {
-      get: async (key) => null,
-      set: async (key, value, ttl) => {},
-      del: async (key) => {},
-      setex: async (key, ttl, value) => {}
-    };
+    const redisClient = container.get('redisClient');
+    return createCacheService(redisClient);
   }, { singleton: true });
 
   // Repository layer
