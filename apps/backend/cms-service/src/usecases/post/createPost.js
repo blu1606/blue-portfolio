@@ -39,7 +39,12 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
         }
         
         // Invalidate cache for all posts list
-        await cacheService.delByPattern('posts:all:*');
+        // Use invalidate API which is provided by the cache service abstraction/mocks
+        if (typeof cacheService.invalidate === 'function') {
+            await cacheService.invalidate('posts:all');
+        } else if (typeof cacheService.del === 'function') {
+            await cacheService.del('posts:all');
+        }
 
 
         return {

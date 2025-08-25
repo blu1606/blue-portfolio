@@ -1,11 +1,12 @@
 // src/configs/redis.config.js
 const redis = require('redis');
 const { promisify } = require('util');
+const config = require('./env.config');
 
 class RedisClient {
   constructor() {
     this.client = redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
+      url: config.redis.url || 'redis://localhost:6379'
     });
 
     this.client.on('connect', () => {
@@ -20,6 +21,7 @@ class RedisClient {
     this.getAsync = promisify(this.client.get).bind(this.client);
     this.setAsync = promisify(this.client.set).bind(this.client);
     this.delAsync = promisify(this.client.del).bind(this.client);
+    this.keysAsync = promisify(this.client.keys).bind(this.client);
   }
 
   static getInstance() {
@@ -30,4 +32,5 @@ class RedisClient {
   }
 }
 
+// Trả về instance client của Redis
 module.exports = RedisClient.getInstance().client;

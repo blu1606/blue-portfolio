@@ -3,6 +3,7 @@ const express = require('express');
 const { setupContainer } = require('../bootstrap');
 const { createFeedbackController } = require('../controllers/feedbackController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
+const { authorize } = require('common/middlewares/authorizationMiddleware');
 const { validateRequest } = require('common/middlewares/validationMiddleware');
 
 const router = express.Router();
