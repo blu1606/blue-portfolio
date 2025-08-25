@@ -11,12 +11,28 @@ const createPostController = (container) => {
 
             try {
                 const createPostUseCase = container.resolve('createPostUseCase');
-                const result = await createPostUseCase(title, content, authorId, files);
-                
+                const contentType = req.body.contentType || 'html';
+                const result = await createPostUseCase(title, content, contentType, authorId, files);
+
+                // Normalize result to be backward-compatible with older tests/controllers
+                // result may be either a post object or an object with a `post` field.
+                const metadata = result;
+                if (metadata && metadata.post) {
+                    // ensure nested post has expected compatibility fields
+                    metadata.post.content = metadata.post.content || metadata.post.content_html || null;
+                    metadata.post.content_html = metadata.post.content_html || null;
+                    metadata.post.content_markdown = metadata.post.content_markdown || null;
+                } else if (metadata) {
+                    // result is a post object itself
+                    metadata.content = metadata.content || metadata.content_html || null;
+                    metadata.content_html = metadata.content_html || null;
+                    metadata.content_markdown = metadata.content_markdown || null;
+                }
+
                 return res.status(201).json({
                     success: true,
                     message: 'Post created successfully',
-                    metadata: result
+                    metadata: metadata.post || metadata
                 });
             } catch (error) {
                 if (error.statusCode === 400) {
@@ -139,10 +155,14 @@ const createPostController = (container) => {
                 const result = await updatePostUseCase(postId, updateData, authorId, files);
                 
                 // Invalidate cache after successful update
-                const cache = cacheService.createCacheService();
-                await cache.del(`post:${postId}`);
-                await cache.del(`post:slug:${result.post.slug}`);
-                await cache.del('posts:all');
+                if (cacheService && typeof cacheService.createCacheService === 'function') {
+                    const cache = cacheService.createCacheService();
+                    await cache.del(`post:${postId}`);
+                    await cache.del(`post:slug:${result.post.slug}`);
+                    await cache.del('posts:all');
+                } else if (cacheService && typeof cacheService.invalidate === 'function') {
+                    await cacheService.invalidate('posts:all');
+                }
                 
                 return res.status(200).json({
                     success: true,
