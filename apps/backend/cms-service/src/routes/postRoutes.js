@@ -11,17 +11,22 @@ const container = setupContainer();
 const postController = createPostController(container);
 
 // Define validation schema
-const postSchema = {
+const createPostSchema = {
     body: {
         title: { type: 'string', minLength: 5, maxLength: 255 },
         content: { type: 'string', minLength: 10 },
+        contentType: { type: 'string', enum: ['html', 'markdown'], optional: true }
     }
 };
 
 const updatePostSchema = {
+    params: {
+        postId: { type: 'string', minLength: 20 } // assuming a UUID or similar format
+    },
     body: {
         title: { type: 'string', minLength: 5, maxLength: 255, optional: true },
         content: { type: 'string', minLength: 10, optional: true },
+        contentType: { type: 'string', enum: ['html', 'markdown'], optional: true },
         is_published: { type: 'boolean', optional: true }
     }
 };
@@ -66,15 +71,18 @@ router.use(authenticationMiddleware);
 router.post(
     '/',
     upload.array('media', 10), // Cho phép upload tối đa 10 file với key là 'media'
-    validateRequest(postSchema),
+    validateRequest(createPostSchema),
     postController.createPost
 );
 
-// updatePost
-router.put('/:postId',
+// updatePost (support PUT as tests use PUT)
+router.put(
+    '/:postId',
+    upload.array('media', 10),
     validateRequest(updatePostSchema),
     postController.updatePost
 );
+
 
 // deletePost
 router.delete('/:postId',
