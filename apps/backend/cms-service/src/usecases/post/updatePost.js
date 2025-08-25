@@ -38,14 +38,15 @@ const createUpdatePostUseCase = (postRepository) => {
         // 5. Cache invalidation: Xóa cache liên quan
         const cacheKey = `post:slug:${updatedPost.slug}`;
         await cacheService.del(cacheKey);
-        
+        await cacheService.delByPattern('posts:all:*');
+
         return {
             post: {
                 id: updatedPost.id,
                 title: updatedPost.title,
                 content: updatedPost.content,
                 is_published: updatedPost.is_published,
-                updated_at: updatedPost.updated_at
+                updated_at: updatedPost.updated_at6
             },
             message: 'Post updated successfully.'
         }

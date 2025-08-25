@@ -26,7 +26,7 @@ const createDeletePostUseCase = (postRepository) => {
     await cacheService.del(cacheKey);
 
     // Xóa cache của danh sách bài viết để đảm bảo tính đồng bộ
-    await cacheService.del('posts:all');
+    await cacheService.delByPattern('posts:all:*');
 
     
     return {
