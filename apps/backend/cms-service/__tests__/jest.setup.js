@@ -225,48 +225,50 @@ jest.mock('../src/bootstrap', () => ({
                     case 'cacheService': return global.mockCacheService;
                     case 'cloudinaryService': return global.mockCloudinaryService;
                     case 'createPostUseCase': 
-                        return jest.fn().mockImplementation((title, content, authorId, files) => {
+                        return jest.fn().mockImplementation((title, content, contentType, authorId, files) => {
                             // Validation tests
                             if (!title || !content || !authorId) {
                                 const error = new Error('Missing required fields');
                                 error.statusCode = 400;
                                 throw error;
                             }
-                            
+                            // Basic validation matching tests
                             if (title.length < 5) {
-                                const error = new Error('Title must be at least 5 characters long');
+                                const error = new Error('Title is too short');
                                 error.statusCode = 400;
                                 throw error;
                             }
-                            
                             if (content.length < 10) {
-                                const error = new Error('Content must be at least 10 characters long');
+                                const error = new Error('Content is too short');
                                 error.statusCode = 400;
                                 throw error;
                             }
-                            
-                            // Mock duplicate check
+                            // ... (các validation khác) ...
                             if (global.createdPosts.has(title)) {
                                 const error = new Error('A Post with the same title already exists.');
                                 error.statusCode = 409;
                                 throw error;
                             }
-                            
-                            // Add to created posts
                             global.createdPosts.add(title);
-                            
-                            // Generate slug using the same logic as slugify mock
                             const slug = title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
                             
+                            // Mock markdown conversion
+                            const contentHtml = contentType === 'markdown' ? `<h1>${title}</h1><p>Processed from markdown</p>` : content;
+                            
                             return Promise.resolve({
-                                id: 'mock-post-id',
-                                title,
-                                content,
-                                author_id: authorId,
-                                slug,
-                                is_published: false,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
+                                post: {
+                                    id: 'mock-post-id',
+                                    title,
+                                    slug,
+                                    content: content,
+                                    content_html: contentHtml,
+                                    content_markdown: contentType === 'markdown' ? content : null,
+                                    content_type: contentType || 'html',
+                                    author_id: authorId,
+                                    is_published: false,
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                }
                             });
                         });
                     case 'getAllPostsUseCase': 
@@ -377,43 +379,60 @@ jest.mock('../src/bootstrap', () => ({
                             });
                         });
                     case 'updatePostUseCase': 
-                        return jest.fn().mockImplementation((postId, updateData, authorId, files) => {
-                            // Mock validation errors
-                            if (updateData.title && updateData.title.length < 3) {
-                                throw { statusCode: 400, message: 'Title must be at least 3 characters long' };
+                        return jest.fn().mockImplementation((postId, updateData = {}, authorId, files) => {
+                            // Simulate not found
+                            if (postId === 'non-existent-id') {
+                                throw { statusCode: 404, message: 'Post not found' };
                             }
-                            if (updateData.content && updateData.content.length < 10) {
-                                throw { statusCode: 400, message: 'Content must be at least 10 characters long' };
+                            // Simulate database error
+                            if (postId === 'db-error-id') {
+                                throw { statusCode: 400, message: 'Database error occurred' };
                             }
-                            if (updateData.is_published !== undefined && typeof updateData.is_published !== 'boolean') {
-                                throw { statusCode: 400, message: 'Invalid publication status' };
+                            // Simulate invalid id format
+                            if (postId === 'invalid-id-format') {
+                                throw { statusCode: 400, message: 'Invalid post ID format' };
                             }
-                            
+
                             // Mock authorization errors
                             if (authorId === 'different-user' && postId === 'post123') {
                                 throw { statusCode: 403, message: 'Unauthorized: Cannot update post owned by another user' };
                             }
+
+                            // Validation similar to route schema
+                            if (updateData.title && updateData.title.length < 5) {
+                                throw { statusCode: 400, message: 'Title is too short' };
+                            }
+                            if (updateData.content && updateData.content.length < 10) {
+                                throw { statusCode: 400, message: 'Content is too short' };
+                            }
+                            if (updateData.hasOwnProperty('is_published') && typeof updateData.is_published !== 'boolean') {
+                                throw { statusCode: 400, message: 'Invalid publication status' };
+                            }
+
+                            // Mock markdown conversion
+                            const updatedContent = updateData.content;
+                            const newContentType = updateData.contentType || 'html';
+                            let contentHtml = null;
+                            let contentMarkdown = null;
                             
-                            // Mock not found errors
-                            if (postId === 'non-existent-id' || postId === 'invalid-id-format') {
-                                throw { statusCode: 404, message: 'Post not found' };
+                            if (newContentType === 'markdown') {
+                                contentMarkdown = updatedContent || null;
+                                contentHtml = updatedContent ? `<h1>${updateData.title || 'Original Title'}</h1><p>Processed from markdown</p>` : 'Original HTML';
+                            } else {
+                                contentHtml = updatedContent || 'Original HTML';
                             }
                             
-                            // Mock database errors
-                            if (postId === 'db-error-id') {
-                                throw { statusCode: 400, message: 'Database error occurred' };
-                            }
-                            
-                            return Promise.resolve({ 
-                                message: 'Post updated successfully',
+                            return Promise.resolve({
                                 post: {
                                     id: postId,
-                                    title: updateData.title || 'Test Post',
-                                    content: updateData.content || 'This is test content',
-                                    slug: updateData.title ? updateData.title.toLowerCase().replace(/\s+/g, '-') : 'test-post',
-                                    author_id: 'user123', // Never changes
-                                    is_published: updateData.is_published ?? false,
-                                    created_at: '2025-08-24T19:00:00Z', // Never changes
+                                    title: updateData.title || 'Original Title',
+                                    content: updateData.content || 'Original Content',
+                                    content_html: contentHtml,
+                                    content_markdown: contentMarkdown,
+                                    content_type: newContentType,
+                                    author_id: authorId === 'different-user' ? 'different_user' : 'user123',
+                                    created_at: '2025-08-24T19:00:00Z',
+                                    is_published: updateData.is_published !== undefined ? updateData.is_published : true,
                                     updated_at: new Date().toISOString()
                                 }
                             });
