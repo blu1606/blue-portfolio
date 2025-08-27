@@ -23,6 +23,9 @@ const { createGetAllFeedbacksUseCase } = require('./usecases/feedback/getAllFeed
 const { createCreateCommentUseCase } = require('./usecases/comment/createComment');
 const { createGetCommentsByPostUseCase } = require('./usecases/comment/getCommentsByPost');
 
+// meilisearch usecase
+const { createMeiliSearchPostsUseCase } = require('./usecases/post/meiliSearchPosts');
+
 const { createCacheService } = require('./services/cacheService');
 const { createCloudinaryService } = require('./services/cloudinaryService');
 
@@ -63,14 +66,7 @@ const setupContainer = () => {
 
 
   // Use case layer
-  container.register('createPostUseCase', (container) => {
-    return createCreatePostUseCase(
-      container.get('postRepository'),
-      container.get('cloudinaryService'),
-      container.get('mediaRepository'),
-      container.get('cacheService')
-    );
-  });
+  // createPostUseCase will be registered after rabbitmq/meili below
 
   container.register('searchPostsUseCase', (container) => {
     return createSearchPostsUseCase(
@@ -83,6 +79,7 @@ const setupContainer = () => {
     return createGetPostUseCase(container.get('postRepository'), container.get('cacheService'));
   });
 
+  // Post-related usecases
   container.register('updatePostUseCase', (container) => {
     return createUpdatePostUseCase(container.get('postRepository'), container.get('cacheService'));
   });
@@ -90,14 +87,16 @@ const setupContainer = () => {
   container.register('deletePostUseCase', (container) => {
     return createDeletePostUseCase(container.get('postRepository'), container.get('cacheService'));
   });
-  
+
   container.register('getAllPostsUseCase', (container) => {
     return createGetAllPostsUseCase(container.get('postRepository'), container.get('cacheService'));
   });
   
   // feedback usecase
   container.register('createFeedbackUseCase', (container) => {
-    return createCreateFeedbackUseCase(container.get('feedbackRepository'));
+    const feedbackRepository = container.get('feedbackRepository');
+    const cloudinaryService = container.get('cloudinaryService');
+    return createCreateFeedbackUseCase(feedbackRepository, cloudinaryService);
   });
   container.register('getFeedbacksUseCase', (container) => {
     return createGetFeedbacksUseCase(container.get('feedbackRepository'));
@@ -119,6 +118,36 @@ const setupContainer = () => {
   container.register('getCommentsByPostUseCase', (container) => {
     return createGetCommentsByPostUseCase(container.get('commentRepository'));
   });
+
+  // rabbitMQ
+  const { createRabbitMQPublisher } = require('./services/rabbitmqPubliser');
+  container.register('rabbitmqPublisher', () => {
+    return createRabbitMQPublisher(process.env.RABBITMQ_URL);
+  }, { singleton: true });
+
+  // meilisearch service and usecase
+  const { createMeiliSearchService } = require('./services/meiliSearchService');
+  container.register('meiliSearchService', () => createMeiliSearchService({
+    host: process.env.MEILI_HOST,
+    apiKey: process.env.MEILI_API_KEY
+  }), { singleton: true });
+
+  container.register('meiliSearchPostsUseCase', (container) => {
+    return createMeiliSearchPostsUseCase(container.get('meiliSearchService'));
+  });
+
+  // createPostUseCase (depends on rabbitmqPublisher and meili usecase)
+  container.register('createPostUseCase', (container) => {
+    return createCreatePostUseCase(
+      container.get('postRepository'),
+      container.get('cloudinaryService'),
+      container.get('mediaRepository'),
+      container.get('cacheService'),
+      container.get('rabbitmqPublisher')
+    );
+  });
+
+
 
   return container;
 };

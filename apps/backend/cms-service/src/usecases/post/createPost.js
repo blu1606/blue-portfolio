@@ -2,7 +2,7 @@ const slugify = require('slugify');
 const { BadRequestError, ConflictRequestError } = require('common/core/error.response');
 const { processMarkdown } = require('../../utils/markdown');
 
-const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService) => {
+const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService, rabbitmqPublisher) => {
     return async (title, content, contentType, authorId, files = []) => {
         // Support legacy and new signatures:
         // Old: (title, content, authorId, files)
@@ -79,6 +79,22 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
                 await cacheService.del('posts:all');
             }
         }
+
+        if (rabbitmqPublisher && typeof rabbitmqPublisher.publish === 'function') {
+            await rabbitmqPublisher.publish('posts.created', {
+                eventType: 'posts.created',
+                entityId: newPost.id,
+                payload: {
+                    id: newPost.id,
+                    title: newPost.title,
+                    slug: newPost.slug,
+                    content_html: newPost.content_html,
+                    created_at: newPost.created_at,
+                    updated_at: newPost.updated_at
+                }
+            });
+        }
+
 
 
         return {
