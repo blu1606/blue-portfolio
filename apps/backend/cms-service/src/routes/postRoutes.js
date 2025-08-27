@@ -3,91 +3,58 @@ const express = require('express');
 const { setupContainer } = require('../bootstrap');
 const { createPostController } = require('../controllers/postController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
-const { validateRequest } = require('common/middlewares/validationMiddleware');
-const upload = require('../utils/multer');
+const { postUpload } = require('../utils/multer');
+const { postSanitizer } = require('../middlewares/inputSanitizer');
+const { 
+  validateCreatePost, 
+  validateUpdatePost, 
+  validatePagination,
+  validateSearch 
+} = require('../middlewares/validationSchemas');
 
 const router = express.Router();
 const container = setupContainer();
 const postController = createPostController(container);
 
-// Define validation schema
-const createPostSchema = {
-    body: {
-        title: { type: 'string', minLength: 5, maxLength: 255 },
-        content: { type: 'string', minLength: 10 },
-        contentType: { type: 'string', enum: ['html', 'markdown'], optional: true }
-    }
-};
-
-const updatePostSchema = {
-    params: {
-        postId: { type: 'string', minLength: 20 } // assuming a UUID or similar format
-    },
-    body: {
-        title: { type: 'string', minLength: 5, maxLength: 255, optional: true },
-        content: { type: 'string', minLength: 10, optional: true },
-        contentType: { type: 'string', enum: ['html', 'markdown'], optional: true },
-        is_published: { type: 'boolean', optional: true }
-    }
-};
-
-const searchSchema = {
-    query: {
-        query: { type: 'string', minLength: 2 },
-        limit: { type: 'number', optional: true, min: 1, max: 100 },
-        offset: { type: 'number', optional: true, min: 0 }
-    }
-};
-
-const paginationSchema = {
-    query: {
-        limit: { type: 'number', optional: true, min: 1, max: 100 },
-        offset: { type: 'number', optional: true, min: 0 }
-    }
-};
-
-
 // ===================== PUBLIC ROUTES =====================
 
+// Get all posts with pagination
+router.get('/', validatePagination, postController.getAllPosts);
+
 // Search posts
-router.get('/search',
-    validateRequest(searchSchema),
-    postController.searchPosts
-);
+router.get('/search', validateSearch, postController.searchPosts);
 
+// Get post by slug
+router.get('/slug/:slug', postController.getPostBySlug);
 
-// Get a single post by slug
-router.get('/:slug', postController.getPostBySlug);
+// Get post by ID
+router.get('/:postId', postController.getPostById);
 
-// get all posts
-router.get('/', validateRequest(paginationSchema), postController.getAllPosts);
+// ===================== PROTECTED ROUTES =====================
 
 // Apply authentication middleware to all routes below
 router.use(authenticationMiddleware);
 
-// ===================== PROTECTED ROUTES =====================
-
 // Create a new post
 router.post(
     '/',
-    upload.array('media', 10), // Cho phép upload tối đa 10 file với key là 'media'
-    validateRequest(createPostSchema),
+    postUpload,
+    postSanitizer,
+    validateCreatePost,
     postController.createPost
 );
 
-// updatePost (support PUT as tests use PUT)
+// Update post
 router.put(
     '/:postId',
-    upload.array('media', 10),
-    validateRequest(updatePostSchema),
+    postUpload,
+    postSanitizer,
+    validateUpdatePost,
     postController.updatePost
 );
 
-
-// deletePost
-router.delete('/:postId',
-    postController.deletePost
-);
+// Delete post
+router.delete('/:postId', postController.deletePost);
 
 
 module.exports = router;

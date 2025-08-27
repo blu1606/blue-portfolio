@@ -1,286 +1,182 @@
 // src/controllers/postController.js
-const { SuccessResponse, CREATED } = require('common/core/success.response.js');
 const asyncHandler = require('common/helpers/asyncHandler');
+const { ResponseHelper } = require('../utils/responseHelper');
+const { validatePostData, validatePagination } = require('../utils/validation');
+const { validatePostFiles } = require('../utils/fileValidation');
 
 const createPostController = (container) => {
     return {
         createPost: asyncHandler(async (req, res) => {
-            const { title, content } = req.body;
-            const authorId = req.user.id; // req.user has been transfer from authenticationMiddleware
-            const files = req.files || []; // retrieve files from multer
-
             try {
+                const { title, content, contentType } = req.body;
+                const authorId = req.user.id;
+                
+                // Validate input data
+                const validatedData = validatePostData(title, content, contentType);
+                
+                // Validate files
+                const { files } = validatePostFiles(req.files);
+                
                 const createPostUseCase = container.resolve('createPostUseCase');
-                const contentType = req.body.contentType || 'html';
-                const result = await createPostUseCase(title, content, contentType, authorId, files);
+                const result = await createPostUseCase(
+                    validatedData.title, 
+                    validatedData.content, 
+                    validatedData.contentType, 
+                    authorId, 
+                    files
+                );
 
-                // Normalize result to be backward-compatible with older tests/controllers
-                // result may be either a post object or an object with a `post` field.
-                const metadata = result;
-                if (metadata && metadata.post) {
-                    // ensure nested post has expected compatibility fields
-                    metadata.post.content = metadata.post.content || metadata.post.content_html || null;
-                    metadata.post.content_html = metadata.post.content_html || null;
-                    metadata.post.content_markdown = metadata.post.content_markdown || null;
-                } else if (metadata) {
-                    // result is a post object itself
-                    metadata.content = metadata.content || metadata.content_html || null;
-                    metadata.content_html = metadata.content_html || null;
-                    metadata.content_markdown = metadata.content_markdown || null;
-                }
-
-                return res.status(201).json({
-                    success: true,
-                    message: 'Post created successfully',
-                    metadata: metadata.post || metadata
-                });
+                // Normalize result for backward compatibility
+                const metadata = result?.post || result;
+                
+                return ResponseHelper.created(res, 'Post created successfully', metadata);
             } catch (error) {
-                if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 409) {
-                    return res.status(409).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-                throw error; // Re-throw if not handled
+                return ResponseHelper.handleError(res, error);
             }
         }),
 
         getAllPosts: asyncHandler(async (req, res) => {
-            const { limit, offset } = req.query;
-            
-            // Check for non-numeric parameters first
-            if (limit && isNaN(limit)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid limit parameter. Must be a number'
-                });
-            }
-            
-            if (offset && isNaN(offset)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid offset parameter. Must be a number'
-                });
-            }
-            
-            // Input validation
-            const limitNum = limit ? parseInt(limit) : 20;
-            const offsetNum = offset ? parseInt(offset) : 0;
-            
-            if (limitNum <= 0 || limitNum > 100) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid limit parameter. Must be between 1 and 100'
-                });
-            }
-            
-            if (offsetNum < 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid offset parameter. Must be non-negative'
-                });
-            }
-            
             try {
-                const getAllPostsUseCase = container.resolve('getAllPostsUseCase');
-                const result = await getAllPostsUseCase(limitNum, offsetNum);
+                const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
                 
-                return res.status(200).json({
-                    success: true,
-                    message: 'Posts retrieved successfully!',
-                    metadata: {
-                        posts: result.data || [],
-                        total: result.total || 0
-                    }
-                });
+                const getAllPostsUseCase = container.resolve('getAllPostsUseCase');
+                const result = await getAllPostsUseCase(limit, offset);
+                
+                return ResponseHelper.paginatedResponse(
+                    res,
+                    'Posts retrieved successfully!',
+                    result.data || [],
+                    result.total || 0,
+                    limit,
+                    offset
+                );
             } catch (error) {
-                if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-                throw error;
+                return ResponseHelper.handleError(res, error);
             }
         }),
 
         searchPosts: asyncHandler(async (req, res) => {
-            const { query, limit = 20, offset = 0 } = req.query;
-            
             try {
-                // Sanitize query to prevent XSS
-                const sanitizedQuery = query?.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                const { query } = req.query;
+                const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
                 
                 const searchPostsUseCase = container.resolve('searchPostsUseCase');
-                const result = await searchPostsUseCase(sanitizedQuery, parseInt(limit), parseInt(offset));
+                const result = await searchPostsUseCase(query, limit, offset);
                 
-                return res.status(200).json({
-                    success: true,
-                    message: 'Posts searched successfully',
-                    metadata: {
-                        posts: result.data || [],
-                        total: result.total || 0,
-                        query: sanitizedQuery,
-                        limit: parseInt(limit),
-                        offset: parseInt(offset)
-                    }
-                });
+                return ResponseHelper.paginatedResponse(
+                    res,
+                    'Posts searched successfully',
+                    result.data || [],
+                    result.total || 0,
+                    limit,
+                    offset
+                );
             } catch (error) {
-                if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-                throw error;
+                return ResponseHelper.handleError(res, error);
             }
         }),
 
-        // Update Post
-        updatePost: asyncHandler(async (req, res) => {
-            const { postId } = req.params;
-            const updateData = req.body;
-            const files = req.files || [];
-            const authorId = req.user.id;
-
+        getPostById: asyncHandler(async (req, res) => {
             try {
+                const { postId } = req.params;
+
+                const getPostUseCase = container.resolve('getPostUseCase');
+                const result = await getPostUseCase(postId);
+                
+                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
+            } catch (error) {
+                return ResponseHelper.handleError(res, error);
+            }
+        }),
+
+        updatePost: asyncHandler(async (req, res) => {
+            try {
+                const { postId } = req.params;
+                const updateData = req.body;
+                const files = req.files || [];
+                const authorId = req.user.id;
+
                 const updatePostUseCase = container.resolve('updatePostUseCase');
                 const cacheService = container.resolve('cacheService');
                 
                 const result = await updatePostUseCase(postId, updateData, authorId, files);
                 
                 // Invalidate cache after successful update
-                if (cacheService && typeof cacheService.createCacheService === 'function') {
-                    const cache = cacheService.createCacheService();
-                    await cache.del(`post:${postId}`);
-                    await cache.del(`post:slug:${result.post.slug}`);
-                    await cache.del('posts:all');
-                } else if (cacheService && typeof cacheService.invalidate === 'function') {
-                    await cacheService.invalidate('posts:all');
+                try {
+                    if (cacheService && typeof cacheService.createCacheService === 'function') {
+                        const cache = cacheService.createCacheService();
+                        await cache.del(`post:${postId}`);
+                        await cache.del(`post:slug:${result.post.slug}`);
+                        await cache.del('posts:all');
+                    } else if (cacheService && typeof cacheService.invalidate === 'function') {
+                        await cacheService.invalidate('posts:all');
+                    }
+                } catch (cacheError) {
+                    console.error('Cache invalidation failed:', cacheError);
                 }
                 
-                return res.status(200).json({
-                    success: true,
-                    message: 'Post updated successfully',
-                    metadata: { post: result.post }
-                });
+                return ResponseHelper.success(res, 'Post updated successfully', { post: result.post });
             } catch (error) {
-                if (error.statusCode === 403) {
-                    return res.status(403).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 404) {
-                    return res.status(404).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-                throw error;
+                return ResponseHelper.handleError(res, error);
             }
         }),
 
-        // Delete Post
         deletePost: asyncHandler(async (req, res) => {
-            const { postId } = req.params;
-            const authorId = req.user.id;
-
             try {
+                const { postId } = req.params;
+                const authorId = req.user.id;
+
                 const deletePostUseCase = container.resolve('deletePostUseCase');
                 const cacheService = container.resolve('cacheService');
                 
                 await deletePostUseCase(postId, authorId);
                 
                 // Invalidate cache after successful deletion
-                const cache = cacheService.createCacheService();
-                await cache.del(`post:${postId}`);
-                await cache.del('posts:all');
-                
-                return res.status(200).json({
-                    success: true,
-                    message: 'Post deleted successfully'
-                });
-            } catch (error) {
-                if (error.statusCode === 403) {
-                    return res.status(403).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 404) {
-                    return res.status(404).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
+                try {
+                    if (cacheService && typeof cacheService.createCacheService === 'function') {
+                        const cache = cacheService.createCacheService();
+                        await cache.del(`post:${postId}`);
+                        await cache.del('posts:all');
+                    } else if (cacheService && typeof cacheService.invalidate === 'function') {
+                        await cacheService.invalidate('posts:all');
+                    }
+                } catch (cacheError) {
+                    console.error('Cache invalidation failed:', cacheError);
                 }
-                throw error;
+                
+                return ResponseHelper.success(res, 'Post deleted successfully');
+            } catch (error) {
+                return ResponseHelper.handleError(res, error);
             }
         }),
 
         getPostBySlug: asyncHandler(async (req, res) => {
-            const { slug } = req.params;
-            
-            // Sanitize slug input
-            const sanitizedSlug = slug ? slug.replace(/[<>]/g, '') : '';
-
             try {
+                const { slug } = req.params;
+
                 const getPostUseCase = container.resolve('getPostUseCase');
-                const cacheService = container.resolve('cacheService');
-                const cache = cacheService.createCacheService();
+                const result = await getPostUseCase(slug);
                 
-                // Check cache first
-                const cacheKey = `post:slug:${sanitizedSlug}`;
-                const cachedPost = await cache.get(cacheKey);
-                
-                if (cachedPost) {
-                    return res.status(200).json({
-                        success: true,
-                        message: 'Post retrieved successfully',
-                        metadata: { post: JSON.parse(cachedPost) }
-                    });
-                }
-                
-                // Get from database
-                const result = await getPostUseCase(sanitizedSlug);
-                
-                // Cache the result
-                await cache.setex(cacheKey, 3600, JSON.stringify(result.post)); // Cache for 1 hour
-                
-                return res.status(200).json({
-                    success: true,
-                    message: 'Post retrieved successfully',
-                    metadata: { post: result.post }
-                });
+                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
             } catch (error) {
-                if (error.statusCode === 404) {
-                    return res.status(404).json({
-                        success: false,
-                        message: error.message
-                    });
-                } else if (error.statusCode === 400) {
-                    return res.status(400).json({
-                        success: false,
-                        message: error.message
-                    });
-                }
-                throw error;
+                return ResponseHelper.handleError(res, error);
+            }
+        }),
+
+        // Missing getPostById method
+        getPostById: asyncHandler(async (req, res) => {
+            try {
+                const { postId } = req.params;
+                
+                const getPostUseCase = container.resolve('getPostUseCase');
+                const result = await getPostUseCase(postId);
+                
+                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
+            } catch (error) {
+                return ResponseHelper.handleError(res, error);
             }
         })
-    }
-}
+    };
+};
 
 module.exports = { createPostController };

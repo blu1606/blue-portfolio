@@ -1,9 +1,12 @@
 const slugify = require('slugify');
-const { BadRequestError, ConflictRequestError } = require('common/core/error.response');
+const { ConflictRequestError } = require('common/core/error.response');
 const { processMarkdown } = require('../../utils/markdown');
 
 const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService, rabbitmqPublisher) => {
     return async (title, content, contentType, authorId, files = []) => {
+        // Note: Input validation is now handled by middleware layers
+        // This usecase focuses on business logic only
+        
         // Support legacy and new signatures:
         // Old: (title, content, authorId, files)
         // New: (title, content, contentType, authorId, files)
@@ -26,11 +29,9 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
             resolvedFiles = files || [];
         }
 
-        if (!title || !content || !resolvedAuthorId) throw new BadRequestError('Missing required fields');
-
         const slug = slugify(title, { lower: true, strict: true})
 
-        // check if post with the same slug already exist or not
+        // Check if post with the same slug already exists
         const existingPost = await postRepository.findBySlug(slug);
         if (existingPost) throw new ConflictRequestError('A Post with the same title already exists.');
         

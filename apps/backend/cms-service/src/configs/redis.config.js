@@ -1,12 +1,14 @@
 // src/configs/redis.config.js
 const redis = require('redis');
 const { promisify } = require('util');
-const config = require('./env.config');
 
 class RedisClient {
   constructor() {
+    // Default to localhost if no env var set
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    
     this.client = redis.createClient({
-      url: config.redis.url || 'redis://localhost:6379'
+      url: redisUrl
     });
 
     this.client.on('connect', () => {

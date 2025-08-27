@@ -1,32 +1,12 @@
 // src/usecases/createFeedback.js
-const { BadRequestError, TooManyRequestsError } = require('common/core/error.response');
+const { TooManyRequestsError } = require('common/core/error.response');
 
 const createCreateFeedbackUseCase = (feedbackRepository, cloudinaryService, userRepository, mediaRepository) => {
     return async (feedbackData, files = {}, ipAddress, userAgent) => {
         const { userId, authorName, authorEmail, content, rating, isAnonymous } = feedbackData;
         
-        // Validation
-        if (!content || content.trim().length === 0) {
-            throw new BadRequestError('Feedback content cannot be empty.');
-        }
-
-        if (content.length < 10) {
-            throw new BadRequestError('Content must be at least 10 characters long.');
-        }
-
-        if (content.length > 2000) {
-            throw new BadRequestError('Content must not exceed 2000 characters.');
-        }
-
-        // For anonymous feedback, require author name
-        if (isAnonymous && (!authorName || authorName.trim().length === 0)) {
-            throw new BadRequestError('Author name is required for anonymous feedback.');
-        }
-
-        // Validate rating if provided
-        if (rating && (rating < 1 || rating > 5)) {
-            throw new BadRequestError('Rating must be between 1 and 5.');
-        }
+        // Note: Input validation is now handled by middleware layers
+        // This usecase focuses on business logic only
 
         // Rate limiting for anonymous feedback
         if (isAnonymous && ipAddress) {

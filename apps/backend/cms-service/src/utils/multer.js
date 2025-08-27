@@ -1,25 +1,61 @@
 // src/utils/multer.js
 const multer = require('multer');
+const { validateImageFile, MAX_FILE_SIZE, MAX_FILES_POST } = require('./fileValidation');
 
-// Configure multer for file uploads
+/**
+ * Consolidated multer configuration for all file uploads
+ */
+
 const storage = multer.memoryStorage();
 
-const fileFilter = (req, file, cb) => {
-  // Allow images and videos
-  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+// General file filter for posts
+const postFileFilter = (req, file, cb) => {
+  try {
+    validateImageFile(file);
     cb(null, true);
-  } else {
-    cb(new Error('Only image and video files are allowed'), false);
+  } catch (error) {
+    cb(error, false);
   }
 };
 
-const upload = multer({
+// Feedback-specific file filter
+const feedbackFileFilter = (req, file, cb) => {
+  try {
+    validateImageFile(file);
+    cb(null, true);
+  } catch (error) {
+    cb(error, false);
+  }
+};
+
+// Post upload configuration
+const postUpload = multer({
   storage: storage,
-  fileFilter: fileFilter,
+  fileFilter: postFileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-    files: 10 // Maximum 10 files
+    fileSize: MAX_FILE_SIZE,
+    files: MAX_FILES_POST
   }
 });
 
-module.exports = upload;
+// Feedback upload configuration
+const feedbackUpload = multer({
+  storage: storage,
+  fileFilter: feedbackFileFilter,
+  limits: {
+    fileSize: MAX_FILE_SIZE,
+    files: 5 // 1 avatar + 4 images
+  }
+});
+
+// Field configurations
+const feedbackUploadFields = feedbackUpload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'images', maxCount: 4 }
+]);
+
+module.exports = {
+  postUpload: postUpload.array('files', MAX_FILES_POST),
+  feedbackUpload,
+  feedbackUploadFields
+};
