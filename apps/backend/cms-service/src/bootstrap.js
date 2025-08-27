@@ -30,6 +30,9 @@ const { createMeiliSearchPostsUseCase } = require('./usecases/post/meiliSearchPo
 
 const { createCacheService } = require('./services/cacheService');
 const { createCloudinaryService } = require('./services/cloudinaryService');
+const { createTagService } = require('./services/tagService');
+const { createSoftDeleteService } = require('./services/softDeleteService');
+const { createPostService } = require('./services/postService');
 
 const setupContainer = () => {
   const container = new Container();
@@ -71,6 +74,27 @@ const setupContainer = () => {
 
   container.register('postTagRepository', (container) => {
     return createPostTagRepository(container.get('supabase'));
+  }, { singleton: true });
+
+  // Business Services layer
+  container.register('tagService', (container) => {
+    return createTagService(
+      container.get('tagRepository'),
+      container.get('postTagRepository')
+    );
+  }, { singleton: true });
+
+  container.register('softDeleteService', (container) => {
+    return createSoftDeleteService(container);
+  }, { singleton: true });
+
+  container.register('postService', (container) => {
+    return createPostService(
+      container.get('postRepository'),
+      container.get('tagService'),
+      container.get('mediaRepository'),
+      container.get('cloudinaryService')
+    );
   }, { singleton: true });
 
 
