@@ -7,6 +7,8 @@ const { createPostRepository } = require('./repositories/postRepository');
 const { createMediaRepository } = require('./repositories/mediaRepository');
 const { createFeedbackRepository } = require('./repositories/feedbackRepository');
 const { createCommentRepository } = require('./repositories/commentRepository');
+const { createTagRepository } = require('./repositories/tagRepository');
+const { createPostTagRepository } = require('./repositories/postTagRepository');
 
 const { createCreatePostUseCase } = require('./usecases/post/createPost');
 const { createDeletePostUseCase } = require('./usecases/post/deletePost');
@@ -61,6 +63,14 @@ const setupContainer = () => {
   
   container.register('commentRepository', (container) => {
     return createCommentRepository(container.get('supabase'));
+  }, { singleton: true });
+
+  container.register('tagRepository', (container) => {
+    return createTagRepository(container.get('supabase'));
+  }, { singleton: true });
+
+  container.register('postTagRepository', (container) => {
+    return createPostTagRepository(container.get('supabase'));
   }, { singleton: true });
 
 

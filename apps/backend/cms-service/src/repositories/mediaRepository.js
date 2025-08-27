@@ -41,6 +41,7 @@ const createMediaRepository = (supabase) => {
                 .select('*')
                 .eq('entity_type', 'user_avatar')
                 .eq('uploaded_by', userId)
+                .is('deleted_at', null)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
@@ -75,7 +76,8 @@ const createMediaRepository = (supabase) => {
                 .from('media')
                 .select('*')
                 .eq('entity_type', 'post')
-                .eq('entity_id', postId);
+                .eq('entity_id', postId)
+                .is('deleted_at', null);
 
             if (error) {
                 console.error('Database error finding media:', error);
@@ -91,6 +93,7 @@ const createMediaRepository = (supabase) => {
                 .select('*')
                 .eq('entity_type', entityType)
                 .eq('entity_id', entityId)
+                .is('deleted_at', null)
                 .order('created_at', { ascending: false });
                 
             if (error) {

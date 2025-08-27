@@ -2,7 +2,7 @@
 const { BadRequestError } = require('common/core/error.response');
 
 const createPostTagRepository = (supabase) => {
-    return {
+    const repository = {
         // Link post to tags
         linkPostToTags: async (postId, tagIds) => {
             if (!tagIds || tagIds.length === 0) return [];
@@ -136,11 +136,11 @@ const createPostTagRepository = (supabase) => {
         // Replace all tags for a post (useful for updates)
         replacePostTags: async (postId, newTagIds) => {
             // First, soft delete all existing links
-            await this.unlinkAllPostTags(postId);
+            await repository.unlinkAllPostTags(postId);
             
             // Then create new links
             if (newTagIds && newTagIds.length > 0) {
-                return await this.linkPostToTags(postId, newTagIds);
+                return await repository.linkPostToTags(postId, newTagIds);
             }
             return [];
         },
@@ -195,6 +195,8 @@ const createPostTagRepository = (supabase) => {
             return data;
         }
     };
+
+    return repository;
 };
 
 module.exports = { createPostTagRepository };
