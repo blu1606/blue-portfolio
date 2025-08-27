@@ -3,14 +3,13 @@ require('dotenv').config();
 const amqp = require('amqp-connection-manager');
 const { MeiliSearch } = require('meilisearch');
 const { setupContainer } = require('../bootstrap');
-const { getPostUseCase } = require('../usecases/post/getPost');
 
 // Khởi tạo container để truy cập repositories
 const container = setupContainer();
 const postRepository = container.get('postRepository');
 const getPostById = postRepository.findById;
 
-// Cấu hình Meilisearch
+// Cấu hình Meilisearch (local worker uses direct client)
 const meili = new MeiliSearch({
     host: process.env.MEILI_HOST,
     apiKey: process.env.MEILI_API_KEY
