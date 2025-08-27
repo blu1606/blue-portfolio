@@ -16,12 +16,17 @@ const createPostRepository = (supabase) => {
         return data; 
     };
 
-    const findBySlug = async (slug) => {
-        const { data, error } = await supabase
+    const findBySlug = async (slug, includeDeleted = false) => {
+        let query = supabase
             .from('posts')
             .select('*')
-            .eq('slug', slug)
-            .single();
+            .eq('slug', slug);
+
+        if (!includeDeleted) {
+            query = query.is('deleted_at', null);
+        }
+
+        const { data, error } = await query.single();
 
         if (error && error.code === 'PGRST116') {
             return null; // Post not found
@@ -33,12 +38,17 @@ const createPostRepository = (supabase) => {
         return data;
     }
 
-    const findById = async (postId) => {
-        const { data, error } = await supabase
+    const findById = async (postId, includeDeleted = false) => {
+        let query = supabase
             .from('posts')
             .select('*')
-            .eq('id', postId)
-            .single();
+            .eq('id', postId);
+
+        if (!includeDeleted) {
+            query = query.is('deleted_at', null);
+        }
+
+        const { data, error } = await query.single();
         
         if (error && error.code === 'PGRST116') {
             return null; // Post not found
@@ -50,11 +60,39 @@ const createPostRepository = (supabase) => {
         return data;
     }
     
-    const getAll = async () => {
-        const { data, error } = await supabase
+    const getAll = async (filters = {}) => {
+        let query = supabase
             .from('posts')
             .select('*')
-            .order('created_at', { ascending: false });
+            .is('deleted_at', null);
+
+        // Apply filters
+        if (filters.published !== undefined) {
+            query = query.eq('is_published', filters.published);
+        }
+
+        if (filters.authorId) {
+            query = query.eq('author_id', filters.authorId);
+        }
+
+        // Apply sorting
+        if (filters.sortBy === 'views') {
+            query = query.order('views_count', { ascending: false });
+        } else if (filters.sortBy === 'title') {
+            query = query.order('title', { ascending: true });
+        } else {
+            query = query.order('created_at', { ascending: false });
+        }
+
+        // Apply pagination
+        if (filters.limit) {
+            query = query.limit(filters.limit);
+        }
+        if (filters.offset) {
+            query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+        }
+        
+        const { data, error } = await query;
         
         if (error) {
             console.error('Database error getting all posts:', error);
@@ -155,13 +193,123 @@ const createPostRepository = (supabase) => {
     const countAllPosts = async () => {
       const { count, error } = await supabase
         .from('posts')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null);
 
       if (error) {
         console.error('Database error counting posts:', error);
         throw new BadRequestError('Failed to count posts.');
       }
       return count;
+    };
+
+    // New methods for enhanced functionality
+    const updateViewsCount = async (postId) => {
+        const { data, error } = await supabase
+            .rpc('increment_post_views', { post_id: postId });
+        
+        if (error) {
+            console.error('Database error updating views count:', error);
+            // Don't throw error, views increment is not critical
+            console.warn('Failed to increment views count');
+        }
+        return data;
+    };
+
+    const updateThumbnail = async (postId, thumbnailUrl) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .update({ thumbnail_url: thumbnailUrl })
+            .eq('id', postId)
+            .is('deleted_at', null)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Database error updating thumbnail:', error);
+            throw new BadRequestError('Failed to update post thumbnail.');
+        }
+        return data;
+    };
+
+    const updateCommentsCount = async (postId, increment = 1) => {
+        const { data, error } = await supabase
+            .rpc('increment_post_comments_count', { 
+                post_id: postId, 
+                increment_by: increment 
+            });
+        
+        if (error) {
+            console.error('Database error updating comments count:', error);
+            // Don't throw error, comment count is not critical
+            console.warn('Failed to update comments count');
+        }
+        return data;
+    };
+
+    const softDelete = async (postId) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', postId)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Database error soft deleting post:', error);
+            throw new BadRequestError('Failed to delete post.');
+        }
+        return data;
+    };
+
+    const restore = async (postId) => {
+        const { data, error } = await supabase
+            .from('posts')
+            .update({ deleted_at: null })
+            .eq('id', postId)
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Database error restoring post:', error);
+            throw new BadRequestError('Failed to restore post.');
+        }
+        return data;
+    };
+
+    const getPopular = async (limit = 10, timeframe = '30 days') => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('id, title, slug, views_count, created_at, thumbnail_url')
+            .is('deleted_at', null)
+            .eq('is_published', true)
+            .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+            .order('views_count', { ascending: false })
+            .limit(limit);
+        
+        if (error) {
+            console.error('Database error getting popular posts:', error);
+            throw new BadRequestError('Failed to retrieve popular posts.');
+        }
+        return data;
+    };
+
+    const getRelated = async (postId, limit = 5) => {
+        // Get posts with similar tags (simplified version)
+        const { data, error } = await supabase
+            .from('posts')
+            .select('id, title, slug, excerpt, thumbnail_url, created_at')
+            .is('deleted_at', null)
+            .eq('is_published', true)
+            .neq('id', postId)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+        
+        if (error) {
+            console.error('Database error getting related posts:', error);
+            throw new BadRequestError('Failed to retrieve related posts.');
+        }
+        return data;
     };
 
 
@@ -175,7 +323,15 @@ const createPostRepository = (supabase) => {
         searchByRegExp,
         countByRegExp,
         getPaginatedPosts,
-        countAllPosts
+        countAllPosts,
+        // New enhanced methods
+        updateViewsCount,
+        updateThumbnail,
+        updateCommentsCount,
+        softDelete,
+        restore,
+        getPopular,
+        getRelated
     };
 }
 
