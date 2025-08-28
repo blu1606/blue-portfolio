@@ -1,7 +1,10 @@
 // src/services/tagService.js
 const { BadRequestError } = require('common/core/error.response');
+const { createLogger } = require('common/utils/logger');
 
 const createTagService = (tagRepository, postTagRepository) => {
+    const logger = createLogger('TagService');
+    
     const service = {
         // Generate URL-friendly slug from tag name
         generateSlug: (name) => {
@@ -42,13 +45,60 @@ const createTagService = (tagRepository, postTagRepository) => {
             return newTag;
         },
 
+        // Get tag by ID
+        getTagById: async (tagId) => {
+            try {
+                const tag = await tagRepository.findById(tagId);
+                if (!tag) {
+                    throw new BadRequestError('Tag not found.');
+                }
+                logger.info('Tag retrieved successfully', { tagId });
+                return tag;
+            } catch (error) {
+                logger.error('Error getting tag by ID', { tagId, error: error.message });
+                throw new BadRequestError('Failed to retrieve tag.');
+            }
+        },
+
+        // Get all active tags
+        getAllActiveTags: async (filters = {}) => {
+            try {
+                const { limit = 50, offset = 0, includeEmpty = false } = filters;
+                
+                const tags = await tagRepository.findAll({
+                    limit,
+                    offset,
+                    includeEmpty
+                });
+
+                logger.info('Active tags retrieved successfully', { 
+                    count: tags.length, 
+                    limit, 
+                    offset 
+                });
+                
+                return {
+                    tags,
+                    pagination: {
+                        limit,
+                        offset,
+                        total: tags.length
+                    }
+                };
+            } catch (error) {
+                logger.error('Error getting all active tags', { error: error.message });
+                throw new BadRequestError('Failed to retrieve tags.');
+            }
+        },
+
         // Get popular tags with post counts
         getPopularTags: async (limit = 10) => {
             try {
                 const tags = await tagRepository.getPopular(limit);
+                logger.info('Popular tags retrieved successfully', { count: tags.length, limit });
                 return tags;
             } catch (error) {
-                console.error('Error getting popular tags:', error);
+                logger.error('Error getting popular tags', { limit, error: error.message });
                 throw new BadRequestError('Failed to retrieve popular tags.');
             }
         },
@@ -64,9 +114,10 @@ const createTagService = (tagRepository, postTagRepository) => {
                     search: query.trim(),
                     limit
                 });
+                logger.info('Tag search completed', { query, limit, results: tags.length });
                 return tags;
             } catch (error) {
-                console.error('Error searching tags:', error);
+                logger.error('Error searching tags', { query, limit, error: error.message });
                 throw new BadRequestError('Failed to search tags.');
             }
         },

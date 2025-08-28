@@ -15,5 +15,7 @@ module.exports = {
   ],
   verbose: true,
   forceExit: true,
-  detectOpenHandles: true
+  detectOpenHandles: true,
+  testEnvironment: 'node',
+  setupFiles: ['<rootDir>/__tests__/setup.js']
 };

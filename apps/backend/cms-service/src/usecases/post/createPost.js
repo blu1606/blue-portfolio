@@ -1,11 +1,16 @@
 const slugify = require('slugify');
-const { ConflictRequestError } = require('common/core/error.response');
+const { ConflictRequestError, BadRequestError } = require('common/core/error.response');
 const { processMarkdown } = require('../../utils/markdown');
 
 const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService, rabbitmqPublisher) => {
     return async (title, content, contentType, authorId, files = []) => {
-        // Note: Input validation is now handled by middleware layers
-        // This usecase focuses on business logic only
+        // Basic input validation for use case
+        if (!title || typeof title !== 'string' || title.trim().length === 0) {
+            throw new BadRequestError('Title is required and must be a non-empty string');
+        }
+        if (!content || typeof content !== 'string' || content.trim().length === 0) {
+            throw new BadRequestError('Content is required and must be a non-empty string');
+        }
         
         // Support legacy and new signatures:
         // Old: (title, content, authorId, files)
@@ -27,6 +32,11 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
         } else {
             resolvedContentType = contentType || 'html';
             resolvedFiles = files || [];
+        }
+
+        // Validate resolved authorId
+        if (!resolvedAuthorId || typeof resolvedAuthorId !== 'string' || resolvedAuthorId.trim().length === 0) {
+            throw new BadRequestError('Author ID is required and must be a non-empty string');
         }
 
         const slug = slugify(title, { lower: true, strict: true})

@@ -1,8 +1,27 @@
 // src/controllers/postController.js
 const asyncHandler = require('common/helpers/asyncHandler');
-const { ResponseHelper } = require('../utils/responseHelper');
-const { validatePostData, validatePagination } = require('../utils/validation');
-const { validatePostFiles } = require('../utils/fileValidation');
+const { createLogger } = require('common/utils/logger');
+const { SuccessResponse, CREATED } = require('common/core/success.response');
+const { validatePostData, validatePagination, validatePostFiles } = require('../utils/validation');
+const Logger = createLogger('PostController');
+
+// Simple error handler
+const handleError = (res, error) => {
+    // Handle known error types with statusCode
+    if (error.statusCode) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+    
+    // Default to 500 for unknown errors
+    console.error('Unhandled error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+    });
+};
 
 const createPostController = (container) => {
     return {
@@ -17,7 +36,7 @@ const createPostController = (container) => {
                 // Validate files
                 const { files } = validatePostFiles(req.files);
                 
-                const createPostUseCase = container.resolve('createPostUseCase');
+                const createPostUseCase = container.get('createPostUseCase');
                 const result = await createPostUseCase(
                     validatedData.title, 
                     validatedData.content, 
@@ -29,9 +48,12 @@ const createPostController = (container) => {
                 // Normalize result for backward compatibility
                 const metadata = result?.post || result;
                 
-                return ResponseHelper.created(res, 'Post created successfully', metadata);
+                return new CREATED({
+                    message: 'Post created successfully',
+                    metadata
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 
@@ -39,7 +61,7 @@ const createPostController = (container) => {
             try {
                 const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
                 
-                const getAllPostsUseCase = container.resolve('getAllPostsUseCase');
+                const getAllPostsUseCase = container.get('getAllPostsUseCase');
                 const result = await getAllPostsUseCase(limit, offset);
                 
                 return ResponseHelper.paginatedResponse(
@@ -60,7 +82,7 @@ const createPostController = (container) => {
                 const { query } = req.query;
                 const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
                 
-                const searchPostsUseCase = container.resolve('searchPostsUseCase');
+                const searchPostsUseCase = container.get('searchPostsUseCase');
                 const result = await searchPostsUseCase(query, limit, offset);
                 
                 return ResponseHelper.paginatedResponse(
@@ -80,7 +102,7 @@ const createPostController = (container) => {
             try {
                 const { postId } = req.params;
 
-                const getPostUseCase = container.resolve('getPostUseCase');
+                const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(postId);
                 
                 return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
@@ -96,8 +118,8 @@ const createPostController = (container) => {
                 const files = req.files || [];
                 const authorId = req.user.id;
 
-                const updatePostUseCase = container.resolve('updatePostUseCase');
-                const cacheService = container.resolve('cacheService');
+                const updatePostUseCase = container.get('updatePostUseCase');
+                const cacheService = container.get('cacheService');
                 
                 const result = await updatePostUseCase(postId, updateData, authorId, files);
                 
@@ -112,7 +134,7 @@ const createPostController = (container) => {
                         await cacheService.invalidate('posts:all');
                     }
                 } catch (cacheError) {
-                    console.error('Cache invalidation failed:', cacheError);
+                    Logger.error('Cache invalidation failed', { error: cacheError.message });
                 }
                 
                 return ResponseHelper.success(res, 'Post updated successfully', { post: result.post });
@@ -126,8 +148,8 @@ const createPostController = (container) => {
                 const { postId } = req.params;
                 const authorId = req.user.id;
 
-                const deletePostUseCase = container.resolve('deletePostUseCase');
-                const cacheService = container.resolve('cacheService');
+                const deletePostUseCase = container.get('deletePostUseCase');
+                const cacheService = container.get('cacheService');
                 
                 await deletePostUseCase(postId, authorId);
                 
@@ -141,7 +163,7 @@ const createPostController = (container) => {
                         await cacheService.invalidate('posts:all');
                     }
                 } catch (cacheError) {
-                    console.error('Cache invalidation failed:', cacheError);
+                    Logger.error('Cache invalidation failed', { error: cacheError.message });
                 }
                 
                 return ResponseHelper.success(res, 'Post deleted successfully');
@@ -154,7 +176,7 @@ const createPostController = (container) => {
             try {
                 const { slug } = req.params;
 
-                const getPostUseCase = container.resolve('getPostUseCase');
+                const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(slug);
                 
                 return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
@@ -168,7 +190,7 @@ const createPostController = (container) => {
             try {
                 const { postId } = req.params;
                 
-                const getPostUseCase = container.resolve('getPostUseCase');
+                const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(postId);
                 
                 return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });

@@ -38,17 +38,17 @@ router.use(authenticationMiddleware);
 // Create a new post
 router.post(
     '/',
-    postUpload,
-    postSanitizer,
-    validateCreatePost,
+    // postUpload,
+    // postSanitizer,
+    // validateCreatePost,
     postController.createPost
 );
 
 // Update post
 router.put(
     '/:postId',
-    postUpload,
-    postSanitizer,
+    // postUpload,
+    // postSanitizer,
     validateUpdatePost,
     postController.updatePost
 );

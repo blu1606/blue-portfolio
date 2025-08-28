@@ -1,7 +1,10 @@
 // src/repositories/feedbackRepository.js
 const { BadRequestError } = require('common/core/error.response');
+const { RepositoryHelper } = require('common/utils/repositoryHelper');
 
 const createFeedbackRepository = (supabase) => {
+    const helper = new RepositoryHelper('feedbacks');
+    
     return {
         create: async (feedbackData) => {
             const { data, error } = await supabase
@@ -11,9 +14,10 @@ const createFeedbackRepository = (supabase) => {
                 .single();
             
             if (error) {
-                console.error('Database error creating feedback:', error);
+                helper.logError('Database error creating feedback', { error: error.message });
                 throw new BadRequestError('Failed to create feedback.');
             }
+            helper.logInfo('Feedback created successfully', { feedbackId: data.id });
             return data;
         },
 
@@ -29,7 +33,11 @@ const createFeedbackRepository = (supabase) => {
                 .limit(1);
             
             if (error) {
-                console.error('Database error checking duplicate feedback:', error);
+                helper.logError('Database error checking duplicate feedback', { 
+                    ipAddress, 
+                    timeWindowMinutes,
+                    error: error.message 
+                });
                 return false;
             }
             

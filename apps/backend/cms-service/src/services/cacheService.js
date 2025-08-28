@@ -1,14 +1,5 @@
 // src/services/cacheService.js
-
-const { promisify } = require('util')
-
 const createCacheService = (redisClient) => {
-
-  const getAsync = promisify(redisClient.get).bind(redisClient);
-  const setAsync = promisify(redisClient.set).bind(redisClient);
-  const delAsync = promisify(redisClient.del).bind(redisClient);
-  const keysAsync = promisify(redisClient.keys).bind(redisClient);
-
   // Constants
   const DEFAULT_EXPIRY_SECONDS = 3600;
   const STALE_TTL_MULTIPLIER = 1.2;
@@ -19,71 +10,167 @@ const createCacheService = (redisClient) => {
    * @param {Function} rebuildFn - Hàm async để lấy dữ liệu mới
    * @param {number} expirySeconds - Thời gian cache tươi (fresh)
    * @returns {Promise<any>} Dữ liệu từ cache hoặc từ hàm rebuildFn
-  */
+   */
+  const getWithStale = async (key, rebuildFn, expirySeconds = DEFAULT_EXPIRY_SECONDS) => {
+    try {
+      const cachedData = await redisClient.get(key);
+
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        const now = Date.now();
+        
+        // Kiểm tra xem cache có fresh không
+        if (parsed.timestamp && (now - parsed.timestamp) < expirySeconds * 1000) {
+          return parsed.data;
+        }
+        
+        // Cache stale nhưng vẫn trả về, đồng thời update ngầm
+        if (parsed.timestamp && (now - parsed.timestamp) < expirySeconds * STALE_TTL_MULTIPLIER * 1000) {
+          // Background refresh
+          rebuildFn().then(newData => {
+            set(key, newData, expirySeconds).catch(console.error);
+          }).catch(console.error);
+          
+          return parsed.data;
+        }
+      }
+
+      // Cache miss hoặc hết hạn hoàn toàn - rebuild
+      const freshData = await rebuildFn();
+      await set(key, freshData, expirySeconds);
+      return freshData;
+
+    } catch (error) {
+      console.error('Cache getWithStale error:', error);
+      // Fallback to direct function call
+      return await rebuildFn();
+    }
+  };
+
+  /**
+   * Lưu dữ liệu vào cache
+   * @param {string} key - Cache key
+   * @param {any} data - Dữ liệu cần cache
+   * @param {number} expirySeconds - Thời gian hết hạn (giây)
+   */
+  const set = async (key, data, expirySeconds = DEFAULT_EXPIRY_SECONDS) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now()
+      };
+      
+      const staleExpiry = Math.floor(expirySeconds * STALE_TTL_MULTIPLIER);
+      await redisClient.set(key, JSON.stringify(cacheData), {
+        EX: staleExpiry
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Cache set error:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Lấy dữ liệu từ cache (đơn giản)
+   * @param {string} key - Cache key
+   * @returns {Promise<any|null>} Dữ liệu hoặc null
+   */
+  const get = async (key) => {
+    try {
+      const cachedData = await redisClient.get(key);
+      if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        return parsed.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Cache get error:', error);
+      return null;
+    }
+  };
+
+  /**
+   * Xóa cache
+   * @param {string} key - Cache key
+   */
+  const del = async (key) => {
+    try {
+      await redisClient.del(key);
+      return true;
+    } catch (error) {
+      console.error('Cache del error:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Xóa nhiều cache keys
+   * @param {string} pattern - Pattern để tìm keys (ví dụ: "posts:*")
+   */
+  const delPattern = async (pattern) => {
+    try {
+      const keys = await redisClient.keys(pattern);
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
+      return keys.length;
+    } catch (error) {
+      console.error('Cache delPattern error:', error);
+      return 0;
+    }
+  };
+
+  /**
+   * Kiểm tra key có tồn tại không
+   * @param {string} key - Cache key
+   */
+  const exists = async (key) => {
+    try {
+      const result = await redisClient.exists(key);
+      return result === 1;
+    } catch (error) {
+      console.error('Cache exists error:', error);
+      return false;
+    }
+  };
+
+  /**
+   * Lấy TTL của key
+   * @param {string} key - Cache key
+   */
+  const ttl = async (key) => {
+    try {
+      return await redisClient.ttl(key);
+    } catch (error) {
+      console.error('Cache ttl error:', error);
+      return -1;
+    }
+  };
+
+  /**
+   * Flush toàn bộ cache
+   */
+  const flush = async () => {
+    try {
+      await redisClient.flushAll();
+      return true;
+    } catch (error) {
+      console.error('Cache flush error:', error);
+      return false;
+    }
+  };
 
   return {
-    getWithStale: async (key, rebuildFn, expirySeconds= DEFAULT_EXPIRY_SECONDS) => {
-
-        try {
-          const cachedData = await getAsync(key);
-
-          if (cachedData) {
-            const data = JSON.parse(cachedData)
-            const currentTime = Date.now();
-
-            // check if data is stale (old but not yet expired from Redis)
-            const isStale = (currentTime - data.timestamp) / 1000 > expirySeconds;
-
-            if (isStale) {
-              // If stale, rebuild the data in the background
-              console.log(`Cache for key ${key} is stale. Rebuilding in the background...`);
-              rebuildFn().then( async (newData) => {
-                if(newData) {
-                  await setAsync(key, JSON.stringify({
-                    value: newData,
-                    timestamp: Date.now()
-                  }), 'EX', expirySeconds*STALE_TTL_MULTIPLIER);
-                }
-              }).catch(error =>{
-                console.error(`Background cache rebuild failed for key ${key}:`, error);
-              });
-            }
-            return data.value;
-          }
-
-          // cache miss - rebuild and store
-          console.log(`Cache miss for key ${key}. Rebuilding now...`);
-          const newData = await rebuildFn();
-          if (newData) {
-            await setAsync(key, JSON.stringify({
-              value: newData,
-              timestamp: Date.now()
-            }), 'EX', expirySeconds*STALE_TTL_MULTIPLIER);
-            return newData;
-          }
-        } catch (error) {
-          console.error(`Cache operation failed for key ${key}:`, error);
-          // Fallback to rebuilding directly on error
-          return rebuildFn();
-        }
-    },
-
-    set: async (key, value, expirySeconds = DEFAULT_EXPIRY_SECONDS) => {
-      const stringValue = JSON.stringify(value, timestamp=Date.now());
-      await setAsync(key, stringValue, 'EX', expirySeconds);
-    },
-
-    del: async (key) => {
-      await delAsync(key);
-    },
-    
-    delByPattern: async (pattern) => {
-      const keys = await keysAsync(pattern);
-      if (keys.length > 0) {
-        await delAsync(keys);
-        console.log(`Deleted ${keys.length} keys matching pattern: ${pattern}`);
-      }
-    }
+    getWithStale,
+    get,
+    set,
+    del,
+    delPattern,
+    exists,
+    ttl,
+    flush
   };
 };
 

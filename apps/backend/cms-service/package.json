@@ -12,6 +12,7 @@
     "test:verbose": "jest --verbose"
   },
   "dependencies": {
+    "@blue-portfolio/common": "file:../../../packages/common",
     "@supabase/supabase-js": "^2.44.3",
     "cloudinary": "^2.7.0",
     "common": "file:../../../packages/common",
@@ -30,6 +31,8 @@
     "redis": "^5.8.2",
     "sanitize-html": "^2.17.0",
     "slugify": "^1.6.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "validator": "^13.15.15"
   },
   "devDependencies": {

@@ -23,8 +23,8 @@ router.get('/', feedbackController.getApprovedFeedbacks);
 // Create anonymous feedback (no auth required)
 router.post(
   '/anonymous', 
-  feedbackUploadFields,
-  feedbackSanitizer,
+  // feedbackUploadFields,
+  // feedbackSanitizer,
   validateCreateAnonymousFeedback,
   feedbackController.createAnonymousFeedback
 );
@@ -36,8 +36,8 @@ router.use(authenticationMiddleware);
 // Create authenticated user feedback
 router.post(
   '/', 
-  feedbackUploadFields,
-  feedbackSanitizer,
+  // feedbackUploadFields,
+  // feedbackSanitizer,
   validateCreateFeedback,
   feedbackController.createFeedback
 );

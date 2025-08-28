@@ -1,18 +1,14 @@
 // src/services/postService.js
 const { BadRequestError, NotFoundError } = require('common/core/error.response');
+const { CommonUtils, createLogger } = require('../utils');
 
 const createPostService = (postRepository, tagService, mediaRepository, cloudinaryService) => {
+    const logger = createLogger('PostService');
+    
     const service = {
-        // Generate URL-friendly slug
+        // Generate URL-friendly slug using common utility
         generateSlug: (title) => {
-            return title
-                .toLowerCase()
-                .trim()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/\s+/g, '-')
-                .replace(/-+/g, '-')
-                .replace(/^-|-$/g, '')
-                .substring(0, 100); // Limit length
+            return CommonUtils.slugify(title).substring(0, 100); // Limit length
         },
 
         // Generate excerpt from content
@@ -184,7 +180,7 @@ const createPostService = (postRepository, tagService, mediaRepository, cloudina
                 await postRepository.updateViewsCount(postId);
                 return { success: true };
             } catch (error) {
-                console.error('Error incrementing views:', error);
+                logger.error('Error incrementing views', { postId, error: error.message });
                 // Don't throw error, views increment is not critical
                 return { success: false };
             }

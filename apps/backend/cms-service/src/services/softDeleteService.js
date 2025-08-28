@@ -1,5 +1,7 @@
 // src/services/softDeleteService.js
 const { BadRequestError } = require('common/core/error.response');
+const { createLogger } = require('common/utils/logger');
+const Logger = createLogger('SoftDeleteService');
 
 const createSoftDeleteService = (container) => {
     const service = {
@@ -21,7 +23,11 @@ const createSoftDeleteService = (container) => {
             try {
                 return container.get(repositoryName);
             } catch (error) {
-                console.error(`Repository ${repositoryName} not found:`, error);
+                Logger.error(`Repository ${repositoryName} not found`, { 
+                    error: error.message, 
+                    entityType, 
+                    repositoryName 
+                });
                 return null;
             }
         },

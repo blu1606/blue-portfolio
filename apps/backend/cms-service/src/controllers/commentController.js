@@ -1,8 +1,24 @@
 // src/controllers/commentController.js
 const asyncHandler = require('common/helpers/asyncHandler');
-const { ResponseHelper } = require('../utils/responseHelper');
+const { SuccessResponse, CREATED } = require('common/core/success.response');
 const { validateCommentData } = require('../utils/validation');
 const { ForbiddenError, NotFoundError } = require('common/core/error.response');
+
+// Simple error handler
+const handleError = (res, error) => {
+    if (error.statusCode) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+    
+    console.error('Unhandled error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+    });
+};
 
 const createCommentController = (container) => {
     return {
@@ -14,7 +30,7 @@ const createCommentController = (container) => {
                 // Validate input data
                 const validatedData = validateCommentData(content, postId, parentId);
                 
-                const createCommentUseCase = container.resolve('createCommentUseCase');
+                const createCommentUseCase = container.get('createCommentUseCase');
                 const result = await createCommentUseCase(
                     validatedData.postId, 
                     userId, 
@@ -22,9 +38,12 @@ const createCommentController = (container) => {
                     validatedData.parentId
                 );
                 
-                return ResponseHelper.created(res, 'Comment created successfully', result);
+                return new CREATED({
+                    message: 'Comment created successfully',
+                    metadata: result
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 
@@ -32,12 +51,15 @@ const createCommentController = (container) => {
             try {
                 const { postId } = req.params;
                 
-                const getCommentsByPostUseCase = container.resolve('getCommentsByPostUseCase');
+                const getCommentsByPostUseCase = container.get('getCommentsByPostUseCase');
                 const result = await getCommentsByPostUseCase(postId);
                 
-                return ResponseHelper.success(res, 'Comments retrieved successfully!', result);
+                return new SuccessResponse({
+                    message: 'Comments retrieved successfully!',
+                    metadata: result
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
         
@@ -47,7 +69,7 @@ const createCommentController = (container) => {
                 const user = req.user;
                 
                 // Check permissions
-                const comment = await container.resolve('commentRepository').getById(commentId);
+                const comment = await container.get('commentRepository').getById(commentId);
                 if (!comment) {
                     throw new NotFoundError('Comment not found.');
                 }
@@ -57,12 +79,14 @@ const createCommentController = (container) => {
                     throw new ForbiddenError('You do not have permission to delete this comment.');
                 }
 
-                const deleteCommentUseCase = container.resolve('deleteCommentUseCase');
+                const deleteCommentUseCase = container.get('deleteCommentUseCase');
                 await deleteCommentUseCase(commentId);
                 
-                return ResponseHelper.success(res, 'Comment deleted successfully!');
+                return new SuccessResponse({
+                    message: 'Comment deleted successfully!'
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
     };

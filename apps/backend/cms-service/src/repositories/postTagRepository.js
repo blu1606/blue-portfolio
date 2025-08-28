@@ -1,5 +1,6 @@
 // src/repositories/postTagRepository.js
 const { BadRequestError } = require('common/core/error.response');
+const { RepositoryHelper } = require('common/utils/repositoryHelper');
 
 const createPostTagRepository = (supabase) => {
     const repository = {
@@ -7,77 +8,105 @@ const createPostTagRepository = (supabase) => {
         linkPostToTags: async (postId, tagIds) => {
             if (!tagIds || tagIds.length === 0) return [];
 
-            const postTags = tagIds.map(tagId => ({
-                post_id: postId,
-                tag_id: tagId,
-                created_at: new Date().toISOString()
-            }));
+            try {
+                const postTags = tagIds.map(tagId => ({
+                    post_id: postId,
+                    tag_id: tagId,
+                    created_at: new Date().toISOString()
+                }));
 
-            const { data, error } = await supabase
-                .from('post_tags')
-                .insert(postTags)
-                .select();
-            
-            if (error) {
-                console.error('Database error linking post to tags:', error);
-                throw new BadRequestError('Failed to link post to tags.');
+                const { data, error } = await supabase
+                    .from('post_tags')
+                    .insert(postTags)
+                    .select();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error linking post to tags');
+                }
+
+                RepositoryHelper.logInfo('Post linked to tags successfully', { 
+                    postId, 
+                    tagCount: tagIds.length 
+                });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error linking post to tags');
             }
-            return data;
         },
 
         // Unlink post from specific tags
         unlinkPostFromTags: async (postId, tagIds) => {
             if (!tagIds || tagIds.length === 0) return;
 
-            const { error } = await supabase
-                .from('post_tags')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('post_id', postId)
-                .in('tag_id', tagIds);
-            
-            if (error) {
-                console.error('Database error unlinking post from tags:', error);
-                throw new BadRequestError('Failed to unlink post from tags.');
+            try {
+                const { error } = await supabase
+                    .from('post_tags')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('post_id', postId)
+                    .in('tag_id', tagIds);
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error unlinking post from tags');
+                }
+
+                RepositoryHelper.logInfo('Post unlinked from tags successfully', { 
+                    postId, 
+                    tagCount: tagIds.length 
+                });
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error unlinking post from tags');
             }
         },
 
         // Unlink post from all tags
         unlinkAllPostTags: async (postId) => {
-            const { error } = await supabase
-                .from('post_tags')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('post_id', postId);
-            
-            if (error) {
-                console.error('Database error unlinking all post tags:', error);
-                throw new BadRequestError('Failed to unlink post from all tags.');
+            try {
+                const { error } = await supabase
+                    .from('post_tags')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('post_id', postId);
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error unlinking all post tags');
+                }
+
+                RepositoryHelper.logInfo('All post tags unlinked successfully', { postId });
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error unlinking all post tags');
             }
         },
 
-        // Get tags for a specific post
+                // Get tags for a post
         getTagsByPostId: async (postId) => {
-            const { data, error } = await supabase
-                .from('post_tags')
-                .select(`
-                    tag_id,
-                    tags!inner (
-                        id,
-                        name,
-                        slug,
-                        description
-                    )
-                `)
-                .eq('post_id', postId)
-                .is('deleted_at', null)
-                .is('tags.deleted_at', null);
-            
-            if (error) {
-                console.error('Database error getting tags by post ID:', error);
-                throw new BadRequestError('Failed to retrieve post tags.');
+            try {
+                const { data, error } = await supabase
+                    .from('post_tags')
+                    .select(`
+                        tags!inner (
+                            id,
+                            name,
+                            slug,
+                            description
+                        )
+                    `)
+                    .eq('post_id', postId)
+                    .is('deleted_at', null)
+                    .is('tags.deleted_at', null);
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error getting tags by post ID');
+                }
+
+                RepositoryHelper.logInfo('Tags retrieved for post successfully', { 
+                    postId, 
+                    tagCount: data.length 
+                });
+                
+                // Return only tag data
+                return data.map(item => item.tags);
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error getting tags by post ID');
             }
-            
-            // Return only tag data
-            return data.map(item => item.tags);
         },
 
         // Get posts for a specific tag
@@ -125,9 +154,14 @@ const createPostTagRepository = (supabase) => {
             const { data, error } = await query;
             
             if (error) {
-                console.error('Database error getting posts by tag ID:', error);
-                throw new BadRequestError('Failed to retrieve posts for tag.');
+                throw RepositoryHelper.handleDatabaseError(error, 'Error getting posts by tag ID');
             }
+
+            RepositoryHelper.logInfo('Posts retrieved for tag successfully', { 
+                tagId, 
+                postCount: data.length,
+                filters 
+            });
             
             // Return only post data
             return data.map(item => item.posts);
@@ -147,52 +181,71 @@ const createPostTagRepository = (supabase) => {
 
         // Get post-tag relationship stats
         getStats: async (postId) => {
-            const { data, error } = await supabase
-                .from('post_tags')
-                .select('tag_id')
-                .eq('post_id', postId)
-                .is('deleted_at', null);
-            
-            if (error) {
-                console.error('Database error getting post-tag stats:', error);
+            try {
+                const { data, error } = await supabase
+                    .from('post_tags')
+                    .select('tag_id')
+                    .eq('post_id', postId)
+                    .is('deleted_at', null);
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error getting post-tag stats');
+                }
+
+                RepositoryHelper.logInfo('Post-tag stats retrieved successfully', { 
+                    postId, 
+                    tagCount: data.length 
+                });
+                
+                return { count: data.length };
+            } catch (error) {
+                RepositoryHelper.logError('Error getting post-tag stats', error, { postId });
                 return { count: 0 };
             }
-            
-            return { count: data.length };
         },
 
         // Soft delete specific post-tag relationship
         softDelete: async (postId, tagId) => {
-            const { data, error } = await supabase
-                .from('post_tags')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('post_id', postId)
-                .eq('tag_id', tagId)
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error soft deleting post-tag:', error);
-                throw new BadRequestError('Failed to remove tag from post.');
+            try {
+                const { data, error } = await supabase
+                    .from('post_tags')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('post_id', postId)
+                    .eq('tag_id', tagId)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error soft deleting post-tag relationship');
+                }
+
+                RepositoryHelper.logInfo('Post-tag relationship soft deleted successfully', { postId, tagId });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error soft deleting post-tag relationship');
             }
-            return data;
         },
 
         // Restore soft deleted post-tag relationship
         restore: async (postId, tagId) => {
-            const { data, error } = await supabase
-                .from('post_tags')
-                .update({ deleted_at: null })
-                .eq('post_id', postId)
-                .eq('tag_id', tagId)
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error restoring post-tag:', error);
-                throw new BadRequestError('Failed to restore tag to post.');
+            try {
+                const { data, error } = await supabase
+                    .from('post_tags')
+                    .update({ deleted_at: null })
+                    .eq('post_id', postId)
+                    .eq('tag_id', tagId)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error restoring post-tag relationship');
+                }
+
+                RepositoryHelper.logInfo('Post-tag relationship restored successfully', { postId, tagId });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error restoring post-tag relationship');
             }
-            return data;
         }
     };
 

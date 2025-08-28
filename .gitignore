@@ -137,3 +137,58 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Development and temporary files
+debug*.js
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Test coverage and reports
+coverage/
+test-results/
+test-report.xml
+junit.xml
+
+# Development documentation (keep only main README)
+**/IMPROVEMENTS*.md
+**/PHASE*.md
+**/TODO*.md
+**/CHANGELOG*.md
+!README.md
+
+# Backup and duplicate files
+*.backup
+*.bak
+*.orig
+*.old
+*.new
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build and dist directories
+build/
+dist/
+out/
+
+# Runtime directories
+uploads/
+temp-uploads/
+cache/
+logs/

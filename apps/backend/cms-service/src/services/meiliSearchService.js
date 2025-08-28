@@ -1,6 +1,8 @@
 // src/services/meiliSearchService.js
 const { MeiliSearch } = require('meilisearch');
 const { BadRequestError } = require('common/core/error.response');
+const { createLogger } = require('common/utils/logger');
+const Logger = createLogger('MeiliSearchService');
 
 // Accept an optional config so callers (bootstrap) can pass host/apiKey explicitly
 const createMeiliSearchService = (config = {}) => {
@@ -24,7 +26,11 @@ const createMeiliSearchService = (config = {}) => {
                 totalHits: results.estimatedTotalHits
             };
         } catch (error) {
-            console.error('Meilisearch search error:', error);
+            Logger.error('Meilisearch search error', { 
+                error: error.message, 
+                query, 
+                options 
+            });
             throw new BadRequestError('Failed to perform search.');
         }
     };

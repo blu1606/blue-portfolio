@@ -1,5 +1,5 @@
 // src/middlewares/authorizationMiddleware.js
-const { ForbiddenError } = require('common/core/error.response');
+const { ForbiddenError } = require('../core/error.response');
 
 const authorize = (role) => (req, res, next) => {
     // req.user được thêm vào bởi authenticationMiddleware

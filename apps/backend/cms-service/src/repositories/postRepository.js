@@ -1,8 +1,11 @@
 // src/repositories/postRepository.js
 const { BadRequestError, NotFoundError } = require('common/core/error.response');
+const { RepositoryHelper } = require('common/utils/repositoryHelper');
 
 const createPostRepository = (supabase) => {
-    const create =  async (postData) => {
+    const helper = new RepositoryHelper('posts');
+
+    const create = async (postData) => {
         const { data, error } = await supabase
             .from('posts')
             .insert([postData])
@@ -10,9 +13,10 @@ const createPostRepository = (supabase) => {
             .single();
         
         if (error) {
-            console.log('Database error creating post: ', error);
+            helper.logError('Database error creating post', { error: error.message });
             throw new BadRequestError('Failed to create post');
         }
+        helper.logInfo('Post created successfully', { postId: data.id });
         return data; 
     };
 

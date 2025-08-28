@@ -1,8 +1,23 @@
 // src/controllers/feedbackController.js
 const asyncHandler = require('common/helpers/asyncHandler');
-const { ResponseHelper } = require('../utils/responseHelper');
-const { validateFeedbackData } = require('../utils/validation');
-const { validateFeedbackFiles } = require('../utils/fileValidation');
+const { SuccessResponse, CREATED } = require('common/core/success.response');
+const { validateFeedbackData, validateFeedbackFiles } = require('../utils/validation');
+
+// Simple error handler
+const handleError = (res, error) => {
+    if (error.statusCode) {
+        return res.status(error.statusCode).json({
+            success: false,
+            message: error.message
+        });
+    }
+    
+    console.error('Unhandled error:', error);
+    return res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+    });
+};
 
 const createFeedbackController = (container) => {
     return {
@@ -18,7 +33,7 @@ const createFeedbackController = (container) => {
                 // Validate files
                 const { files } = validateFeedbackFiles(req.files);
                 
-                const createFeedbackUseCase = container.resolve('createFeedbackUseCase');
+                const createFeedbackUseCase = container.get('createFeedbackUseCase');
                 const result = await createFeedbackUseCase(
                     { ...feedbackData, userId: null }, 
                     files, 
@@ -26,9 +41,12 @@ const createFeedbackController = (container) => {
                     userAgent
                 );
                 
-                return ResponseHelper.created(res, result.message, result.feedback);
+                return new CREATED({
+                    message: result.message,
+                    metadata: result.feedback
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 
@@ -45,7 +63,7 @@ const createFeedbackController = (container) => {
                 // Validate files
                 const { files } = validateFeedbackFiles(req.files);
                 
-                const createFeedbackUseCase = container.resolve('createFeedbackUseCase');
+                const createFeedbackUseCase = container.get('createFeedbackUseCase');
                 const result = await createFeedbackUseCase(
                     { ...feedbackData, userId, authorName: null, authorEmail: null }, 
                     files, 
@@ -53,9 +71,12 @@ const createFeedbackController = (container) => {
                     userAgent
                 );
                 
-                return ResponseHelper.created(res, result.message, result.feedback);
+                return new CREATED({
+                    message: result.message,
+                    metadata: result.feedback
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 
@@ -64,9 +85,12 @@ const createFeedbackController = (container) => {
                 const getFeedbacksUseCase = container.get('getFeedbacksUseCase');
                 const result = await getFeedbacksUseCase();
                 
-                return ResponseHelper.success(res, 'Approved feedbacks retrieved successfully!', result);
+                return new SuccessResponse({
+                    message: 'Approved feedbacks retrieved successfully!',
+                    metadata: result
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
         
@@ -76,9 +100,11 @@ const createFeedbackController = (container) => {
                 const approveFeedbackUseCase = container.get('approveFeedbackUseCase');
                 const result = await approveFeedbackUseCase(feedbackId);
 
-                return ResponseHelper.success(res, result.message);
+                return new SuccessResponse({
+                    message: result.message
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 
@@ -87,9 +113,12 @@ const createFeedbackController = (container) => {
                 const getAllFeedbacksUseCase = container.get('getAllFeedbacksUseCase');
                 const result = await getAllFeedbacksUseCase();
                 
-                return ResponseHelper.success(res, 'All feedbacks retrieved successfully!', result);
+                return new SuccessResponse({
+                    message: 'All feedbacks retrieved successfully!',
+                    metadata: result
+                }).send(res);
             } catch (error) {
-                return ResponseHelper.handleError(res, error);
+                return handleError(res, error);
             }
         }),
 

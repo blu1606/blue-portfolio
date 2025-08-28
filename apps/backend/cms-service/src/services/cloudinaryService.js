@@ -1,8 +1,11 @@
 // src/services/cloudinaryService.js
 const cloudinary = require('../configs/cloudinary.config');
 const { InternalServerError } = require('common/core/error.response');
+const { createLogger } = require('common/utils/logger');
 
 const createCloudinaryService = () => {
+    const logger = createLogger('CloudinaryService');
+    
     const uploadFile = (fileBuffer, resourceType = 'image', options = {}) => {
         return new Promise((resolve, reject) => {
             const uploadOptions = {
@@ -14,9 +17,19 @@ const createCloudinaryService = () => {
                 uploadOptions,
                 (error, result) => {
                     if (error) {
-                        console.error('Cloudinary upload error:', error);
+                        logger.error('Cloudinary upload error', { 
+                            resourceType, 
+                            error: error.message 
+                        });
                         return reject(new InternalServerError('Failed to upload file to Cloudinary.'));
                     }
+                    
+                    logger.info('File uploaded successfully', { 
+                        publicId: result.public_id,
+                        format: result.format,
+                        size: result.bytes 
+                    });
+                    
                     resolve({
                         publicId: result.public_id,
                         url: result.secure_url,

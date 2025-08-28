@@ -1,7 +1,10 @@
 // src/repositories/tagRepository.js
 const { BadRequestError } = require('common/core/error.response');
+const { RepositoryHelper } = require('common/utils/repositoryHelper');
 
 const createTagRepository = (supabase) => {
+    const helper = new RepositoryHelper('tags');
+    
     return {
         // Create new tag
         create: async (tagData) => {
@@ -12,12 +15,13 @@ const createTagRepository = (supabase) => {
                 .single();
             
             if (error) {
-                console.error('Database error creating tag:', error);
+                helper.logError('Database error creating tag', { error: error.message });
                 if (error.code === '23505') { // Unique violation
                     throw new BadRequestError('Tag already exists.');
                 }
                 throw new BadRequestError('Failed to create tag.');
             }
+            helper.logInfo('Tag created successfully', { tagId: data.id });
             return data;
         },
 

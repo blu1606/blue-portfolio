@@ -1,5 +1,6 @@
 // src/repositories/commentRepository.js
 const { BadRequestError, NotFoundError } = require('common/core/error.response');
+const { RepositoryHelper } = require('common/utils/repositoryHelper');
 
 const createCommentRepository = (supabase) => {
     return {
@@ -9,17 +10,22 @@ const createCommentRepository = (supabase) => {
          * @returns {Object} - Bình luận đã được tạo
          */
         create: async (commentData) => {
-            const { data, error } = await supabase
-                .from('comments')
-                .insert([commentData])
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error creating comment:', error);
-                throw new BadRequestError('Failed to create comment.');
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .insert([commentData])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error creating comment');
+                }
+
+                RepositoryHelper.logInfo('Comment created successfully', { commentId: data.id });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error creating comment');
             }
-            return data;
         },
 
         /**
@@ -29,31 +35,40 @@ const createCommentRepository = (supabase) => {
          * @returns {Array} - Danh sách bình luận
          */
         getByPostId: async (postId, filters = {}) => {
-            let query = supabase
-                .from('comments')
-                .select('*, user:user_id(username, email)')
-                .eq('post_id', postId)
-                .is('deleted_at', null);
+            try {
+                let query = supabase
+                    .from('comments')
+                    .select('*, user:user_id(username, email)')
+                    .eq('post_id', postId)
+                    .is('deleted_at', null);
 
-            // Apply sorting
-            if (filters.sortBy === 'newest') {
-                query = query.order('created_at', { ascending: false });
-            } else {
-                query = query.order('created_at', { ascending: true });
-            }
+                // Apply sorting
+                if (filters.sortBy === 'newest') {
+                    query = query.order('created_at', { ascending: false });
+                } else {
+                    query = query.order('created_at', { ascending: true });
+                }
 
-            // Apply pagination
-            if (filters.limit) {
-                query = query.limit(filters.limit);
+                // Apply pagination
+                if (filters.limit) {
+                    query = query.limit(filters.limit);
+                }
+                
+                const { data, error } = await query;
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving comments');
+                }
+
+                RepositoryHelper.logInfo('Comments retrieved successfully', { 
+                    postId, 
+                    count: data.length,
+                    filters 
+                });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving comments');
             }
-            
-            const { data, error } = await query;
-            
-            if (error) {
-                console.error('Database error getting comments:', error);
-                throw new BadRequestError('Failed to retrieve comments.');
-            }
-            return data;
         },
 
         /**
@@ -62,16 +77,21 @@ const createCommentRepository = (supabase) => {
          * @returns {boolean} - Trạng thái xóa
          */
         remove: async (commentId) => {
-            const { error } = await supabase
-                .from('comments')
-                .delete()
-                .eq('id', commentId);
-                
-            if (error) {
-                console.error('Database error deleting comment:', error);
-                throw new BadRequestError('Failed to delete comment.');
+            try {
+                const { error } = await supabase
+                    .from('comments')
+                    .delete()
+                    .eq('id', commentId);
+                    
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error deleting comment');
+                }
+
+                RepositoryHelper.logInfo('Comment deleted successfully', { commentId });
+                return { success: true };
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error deleting comment');
             }
-            return { success: true };
         },
 
         /**
@@ -81,22 +101,29 @@ const createCommentRepository = (supabase) => {
          * @returns {Object} - Bình luận
          */
         getById: async (commentId, includeDeleted = false) => {
-            let query = supabase
-                .from('comments')
-                .select('*, user:user_id(username, email)')
-                .eq('id', commentId);
+            try {
+                let query = supabase
+                    .from('comments')
+                    .select('*, user:user_id(username, email)')
+                    .eq('id', commentId);
 
-            if (!includeDeleted) {
-                query = query.is('deleted_at', null);
-            }
+                if (!includeDeleted) {
+                    query = query.is('deleted_at', null);
+                }
 
-            const { data, error } = await query.single();
-            
-            if (error && error.code !== 'PGRST116') {
-                console.error('Database error getting comment by ID:', error);
-                throw new BadRequestError('Failed to retrieve comment.');
+                const { data, error } = await query.single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving comment by ID');
+                }
+
+                if (data) {
+                    RepositoryHelper.logInfo('Comment retrieved successfully', { commentId });
+                }
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving comment by ID');
             }
-            return data;
         },
 
         /**
@@ -106,22 +133,27 @@ const createCommentRepository = (supabase) => {
          * @returns {Object} - Bình luận đã cập nhật
          */
         updateContent: async (commentId, content) => {
-            const { data, error } = await supabase
-                .from('comments')
-                .update({ 
-                    content, 
-                    updated_at: new Date().toISOString() 
-                })
-                .eq('id', commentId)
-                .is('deleted_at', null)
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error updating comment:', error);
-                throw new BadRequestError('Failed to update comment.');
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .update({ 
+                        content, 
+                        updated_at: new Date().toISOString() 
+                    })
+                    .eq('id', commentId)
+                    .is('deleted_at', null)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error updating comment');
+                }
+
+                RepositoryHelper.logInfo('Comment updated successfully', { commentId });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error updating comment');
             }
-            return data;
         },
 
         /**
@@ -130,18 +162,23 @@ const createCommentRepository = (supabase) => {
          * @returns {Object} - Bình luận đã xóa
          */
         softDelete: async (commentId) => {
-            const { data, error } = await supabase
-                .from('comments')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', commentId)
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error soft deleting comment:', error);
-                throw new BadRequestError('Failed to delete comment.');
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .update({ deleted_at: new Date().toISOString() })
+                    .eq('id', commentId)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error soft deleting comment');
+                }
+
+                RepositoryHelper.logInfo('Comment soft deleted successfully', { commentId });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error soft deleting comment');
             }
-            return data;
         },
 
         /**
@@ -150,18 +187,23 @@ const createCommentRepository = (supabase) => {
          * @returns {Object} - Bình luận đã khôi phục
          */
         restore: async (commentId) => {
-            const { data, error } = await supabase
-                .from('comments')
-                .update({ deleted_at: null })
-                .eq('id', commentId)
-                .select()
-                .single();
-            
-            if (error) {
-                console.error('Database error restoring comment:', error);
-                throw new BadRequestError('Failed to restore comment.');
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .update({ deleted_at: null })
+                    .eq('id', commentId)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error restoring comment');
+                }
+
+                RepositoryHelper.logInfo('Comment restored successfully', { commentId });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error restoring comment');
             }
-            return data;
         },
 
         /**
@@ -170,17 +212,24 @@ const createCommentRepository = (supabase) => {
          * @returns {number} - Số lượng bình luận
          */
         countByPostId: async (postId) => {
-            const { count, error } = await supabase
-                .from('comments')
-                .select('id', { count: 'exact' })
-                .eq('post_id', postId)
-                .is('deleted_at', null);
-            
-            if (error) {
-                console.error('Database error counting comments:', error);
+            try {
+                const { count, error } = await supabase
+                    .from('comments')
+                    .select('id', { count: 'exact' })
+                    .eq('post_id', postId)
+                    .is('deleted_at', null);
+                
+                if (error) {
+                    RepositoryHelper.logError('Error counting comments', error, { postId });
+                    return 0;
+                }
+
+                RepositoryHelper.logInfo('Comments counted successfully', { postId, count });
+                return count || 0;
+            } catch (error) {
+                RepositoryHelper.logError('Error counting comments', error, { postId });
                 return 0;
             }
-            return count || 0;
         },
 
         /**
@@ -189,18 +238,26 @@ const createCommentRepository = (supabase) => {
          * @returns {Array} - Danh sách bình luận mới nhất
          */
         getRecent: async (limit = 10) => {
-            const { data, error } = await supabase
-                .from('comments')
-                .select('*, user:user_id(username), post:post_id(title, slug)')
-                .is('deleted_at', null)
-                .order('created_at', { ascending: false })
-                .limit(limit);
-            
-            if (error) {
-                console.error('Database error getting recent comments:', error);
-                throw new BadRequestError('Failed to retrieve recent comments.');
+            try {
+                const { data, error } = await supabase
+                    .from('comments')
+                    .select('*, user:user_id(username), post:post_id(title, slug)')
+                    .is('deleted_at', null)
+                    .order('created_at', { ascending: false })
+                    .limit(limit);
+                
+                if (error) {
+                    throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving recent comments');
+                }
+
+                RepositoryHelper.logInfo('Recent comments retrieved successfully', { 
+                    count: data.length,
+                    limit 
+                });
+                return data;
+            } catch (error) {
+                throw RepositoryHelper.handleDatabaseError(error, 'Error retrieving recent comments');
             }
-            return data;
         }
     };
 };

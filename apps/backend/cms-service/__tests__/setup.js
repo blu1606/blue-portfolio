@@ -2,6 +2,10 @@
 const dotenv = require('dotenv');
 const path = require('path');
 
+// Set test environment
+process.env.NODE_ENV = 'test';
+process.env.PORT = '3001';
+
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Mock Supabase database
