@@ -4,7 +4,7 @@ const { setupContainer } = require('../bootstrap');
 const { createPostController } = require('../controllers/postController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
 const { postUpload } = require('../utils/multer');
-const { postSanitizer } = require('../middlewares/inputSanitizer');
+const { postSanitizer, inputSanitizer } = require('../middlewares/inputSanitizer');
 const { 
   validateCreatePost, 
   validateUpdatePost, 
@@ -21,8 +21,8 @@ const postController = createPostController(container);
 // Get all posts with pagination
 router.get('/', validatePagination, postController.getAllPosts);
 
-// Search posts
-router.get('/search', validateSearch, postController.searchPosts);
+// Search posts - sanitize query parameters to prevent XSS in search queries
+router.get('/search', inputSanitizer({ sanitizeBody: false, sanitizeParams: false }), validateSearch, postController.searchPosts);
 
 // Get post by slug
 router.get('/slug/:slug', postController.getPostBySlug);

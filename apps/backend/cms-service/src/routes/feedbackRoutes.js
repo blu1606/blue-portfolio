@@ -5,6 +5,7 @@ const { createFeedbackController } = require('../controllers/feedbackController'
 const { authenticationMiddleware } = require('common/middlewares/authentication');
 const { authorize } = require('common/middlewares/authorizationMiddleware');
 const { feedbackUploadFields } = require('../utils/multer');
+const { createSimpleLimiter } = require('../middlewares/rateLimiter');
 const { feedbackSanitizer } = require('../middlewares/inputSanitizer');
 const { 
   validateCreateFeedback, 
@@ -23,9 +24,10 @@ router.get('/', feedbackController.getApprovedFeedbacks);
 // Create anonymous feedback (no auth required)
 router.post(
   '/anonymous', 
-  // feedbackUploadFields,
-  // feedbackSanitizer,
+  feedbackUploadFields,
+  feedbackSanitizer,
   validateCreateAnonymousFeedback,
+  createSimpleLimiter({ windowMs: 1000, max: 3 }),
   feedbackController.createAnonymousFeedback
 );
 
@@ -36,8 +38,8 @@ router.use(authenticationMiddleware);
 // Create authenticated user feedback
 router.post(
   '/', 
-  // feedbackUploadFields,
-  // feedbackSanitizer,
+  feedbackUploadFields,
+  feedbackSanitizer,
   validateCreateFeedback,
   feedbackController.createFeedback
 );
