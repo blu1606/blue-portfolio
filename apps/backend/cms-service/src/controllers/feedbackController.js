@@ -26,7 +26,13 @@ const createFeedbackController = (container) => {
             try {
                 const ipAddress = req.ip || req.connection.remoteAddress;
                 const userAgent = req.get('User-Agent');
-                
+                // Debug: log multipart request info for failing tests
+                if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+                    console.log('DEBUG multipart headers:', req.headers['content-type']);
+                    console.log('DEBUG req.body keys:', Object.keys(req.body || {}));
+                    console.log('DEBUG req.files keys:', Object.keys(req.files || {}));
+                }
+
                 // Validate input data
                 const feedbackData = validateFeedbackData({ ...req.body, isAnonymous: true });
                 

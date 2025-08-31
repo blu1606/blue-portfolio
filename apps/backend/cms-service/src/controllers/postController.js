@@ -2,7 +2,8 @@
 const asyncHandler = require('common/helpers/asyncHandler');
 const { createLogger } = require('common/utils/logger');
 const { SuccessResponse, CREATED } = require('common/core/success.response');
-const { validatePostData, validatePagination, validatePostFiles } = require('../utils/validation');
+const { validatePostData, validatePagination: validatePaginationUtils, validatePostFiles } = require('../utils/validation');
+const ResponseHelper = require('../utils/responseHelper');
 const Logger = createLogger('PostController');
 
 // Simple error handler
@@ -28,26 +29,25 @@ const createPostController = (container) => {
         createPost: asyncHandler(async (req, res) => {
             try {
                 const { title, content, contentType } = req.body;
-                const authorId = req.user.id;
-                
+                const authorId = req.user && req.user.id;
+
                 // Validate input data
                 const validatedData = validatePostData(title, content, contentType);
-                
+
                 // Validate files
                 const { files } = validatePostFiles(req.files);
-                
+
                 const createPostUseCase = container.get('createPostUseCase');
                 const result = await createPostUseCase(
-                    validatedData.title, 
-                    validatedData.content, 
-                    validatedData.contentType, 
-                    authorId, 
+                    validatedData.title,
+                    validatedData.content,
+                    validatedData.contentType,
+                    authorId,
                     files
                 );
 
-                // Normalize result for backward compatibility
                 const metadata = result?.post || result;
-                
+
                 return new CREATED({
                     message: 'Post created successfully',
                     metadata
@@ -59,7 +59,7 @@ const createPostController = (container) => {
 
         getAllPosts: asyncHandler(async (req, res) => {
             try {
-                const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
+                const { limit, offset } = validatePaginationUtils(req.query.limit, req.query.offset);
                 
                 const getAllPostsUseCase = container.get('getAllPostsUseCase');
                 const result = await getAllPostsUseCase(limit, offset);
@@ -80,7 +80,7 @@ const createPostController = (container) => {
         searchPosts: asyncHandler(async (req, res) => {
             try {
                 const { query } = req.query;
-                const { limit, offset } = validatePagination(req.query.limit, req.query.offset);
+                const { limit, offset } = validatePaginationUtils(req.query.limit, req.query.offset);
                 
                 const searchPostsUseCase = container.get('searchPostsUseCase');
                 const result = await searchPostsUseCase(query, limit, offset);
@@ -91,7 +91,8 @@ const createPostController = (container) => {
                     result.data || [],
                     result.total || 0,
                     limit,
-                    offset
+                    offset,
+                    { query: query }
                 );
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
@@ -105,7 +106,7 @@ const createPostController = (container) => {
                 const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(postId);
                 
-                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
+                return ResponseHelper.successResponse(res, 'Post retrieved successfully', { post: result });
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }
@@ -137,7 +138,7 @@ const createPostController = (container) => {
                     Logger.error('Cache invalidation failed', { error: cacheError.message });
                 }
                 
-                return ResponseHelper.success(res, 'Post updated successfully', { post: result.post });
+                return ResponseHelper.successResponse(res, 'Post updated successfully', { post: result.post });
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }
@@ -166,7 +167,7 @@ const createPostController = (container) => {
                     Logger.error('Cache invalidation failed', { error: cacheError.message });
                 }
                 
-                return ResponseHelper.success(res, 'Post deleted successfully');
+                return ResponseHelper.successResponse(res, 'Post deleted successfully');
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }
@@ -179,25 +180,13 @@ const createPostController = (container) => {
                 const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(slug);
                 
-                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
+                return ResponseHelper.successResponse(res, 'Post retrieved successfully', { post: result });
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }
         }),
 
-        // Missing getPostById method
-        getPostById: asyncHandler(async (req, res) => {
-            try {
-                const { postId } = req.params;
-                
-                const getPostUseCase = container.get('getPostUseCase');
-                const result = await getPostUseCase(postId);
-                
-                return ResponseHelper.success(res, 'Post retrieved successfully', { post: result });
-            } catch (error) {
-                return ResponseHelper.handleError(res, error);
-            }
-        })
+    // (other methods continue)
     };
 };
 
