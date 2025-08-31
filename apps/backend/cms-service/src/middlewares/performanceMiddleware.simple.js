@@ -4,9 +4,10 @@ const os = require('os');
 // Simple request timing middleware without header conflicts
 const requestTimer = (req, res, next) => {
   const startTime = process.hrtime.bigint();
+  const isTest = process.env.NODE_ENV === 'test';
   
-  // Log request details
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Started`);
+  // Log request details (skip during tests to keep output clean)
+  if (!isTest) console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Started`);
   
   // Monitor completion
   res.on('finish', () => {
@@ -14,10 +15,10 @@ const requestTimer = (req, res, next) => {
     const duration = Number(endTime - startTime) / 1000000; // Convert to milliseconds
     
     // Log completion with timing
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} - ${duration.toFixed(2)}ms`);
+    if (!isTest) console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} - ${duration.toFixed(2)}ms`);
     
     // Log slow requests (>1 second)
-    if (duration > 1000) {
+    if (!isTest && duration > 1000) {
       console.warn(`🐌 Slow request detected: ${req.method} ${req.url} - ${duration.toFixed(2)}ms`);
     }
   });
@@ -29,9 +30,10 @@ const requestTimer = (req, res, next) => {
 const memoryMonitor = (req, res, next) => {
   const memUsage = process.memoryUsage();
   
-  // Log high memory usage
-  if (memUsage.heapUsed / memUsage.heapTotal > 0.8) {
-    console.warn(`⚠️  High memory usage: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`);
+  // Log high memory usage (skip in tests)
+  const isTest = process.env.NODE_ENV === 'test';
+  if (!isTest && memUsage.heapUsed / memUsage.heapTotal > 0.8) {
+    console.warn('⚠️ High memory usage: ' + Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB / ' + Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB');
   }
   
   next();

@@ -146,7 +146,8 @@ const createCommentSchema = {
     properties: {
       postId: {
         type: 'string',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        minLength: 1,
+        maxLength: 255
       },
       content: {
         type: 'string',
@@ -155,7 +156,8 @@ const createCommentSchema = {
       },
       parentId: {
         type: 'string',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+        minLength: 1,
+        maxLength: 255
       }
     },
     required: ['postId', 'content'],

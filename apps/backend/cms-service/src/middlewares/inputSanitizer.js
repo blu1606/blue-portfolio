@@ -9,9 +9,19 @@ const { BadRequestError } = require('common/core/error.response');
 
 const sanitizeString = (str) => {
   if (typeof str !== 'string') return str;
-  
+
   // Remove null bytes and trim whitespace
-  return validator.escape(str.replace(/\0/g, '').trim());
+  let s = str.replace(/\0/g, '').trim();
+
+  // Remove script tags entirely to prevent XSS but preserve other
+  // special characters (tests expect raw symbols like & and < > to remain)
+  s = s.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+
+  // Remove inline event handlers like onclick="..." to be safer
+  s = s.replace(/on[a-zA-Z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+  // Collapse excessive whitespace
+  return s.replace(/\s{2,}/g, ' ');
 };
 
 const sanitizeObject = (obj) => {

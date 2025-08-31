@@ -64,9 +64,13 @@ const validateEmail = (email) => {
 
 const validateRating = (rating) => {
   if (!rating) return null;
-  
-  const num = validateNumber(rating, 'Rating', 1, 5);
-  return Math.floor(num);
+  try {
+    const num = validateNumber(rating, 'Rating', 1, 5);
+    return Math.floor(num);
+  } catch (err) {
+    // Normalize error message expected by tests
+    throw new BadRequestError('Rating must be between 1 and 5');
+  }
 };
 
 const validatePagination = (limit, offset) => {
