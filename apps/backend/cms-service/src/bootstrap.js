@@ -45,7 +45,10 @@ const setupContainer = () => {
     return createCloudinaryService();
   }, { singleton: true });
   // redis 
-  container.register('redisClient', require('./configs/redis.config'), { singleton: true });
+  container.register('redisClient', () => {
+    const RedisClient = require('./configs/redis.config');
+    return RedisClient;
+  }, { singleton: true });
   container.register('cacheService', (container) => {
     const redisClient = container.get('redisClient');
     return createCacheService(redisClient);
