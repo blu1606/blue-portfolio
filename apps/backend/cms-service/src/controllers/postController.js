@@ -106,7 +106,7 @@ const createPostController = (container) => {
                 const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(postId);
                 
-                return ResponseHelper.successResponse(res, 'Post retrieved successfully', { post: result });
+                return ResponseHelper.successResponse(res, result.message, { post: result.post });
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }
@@ -180,7 +180,7 @@ const createPostController = (container) => {
                 const getPostUseCase = container.get('getPostUseCase');
                 const result = await getPostUseCase(slug);
                 
-                return ResponseHelper.successResponse(res, 'Post retrieved successfully', { post: result });
+                return ResponseHelper.successResponse(res, result.message, { post: result.post });
             } catch (error) {
                 return ResponseHelper.handleError(res, error);
             }

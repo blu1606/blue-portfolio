@@ -1,13 +1,14 @@
 // src/routes/postRoutes.js
 const express = require('express');
+const multer = require('multer');
 const { setupContainer } = require('../bootstrap');
 const { createPostController } = require('../controllers/postController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
-const { postUpload } = require('../utils/multer');
 const { postSanitizer, inputSanitizer } = require('../middlewares/inputSanitizer');
 const { 
   validateCreatePost, 
   validateUpdatePost, 
+  validateDeletePost,
   validatePagination,
   validateSearch 
 } = require('../middlewares/validationSchemas');
@@ -15,6 +16,17 @@ const {
 const router = express.Router();
 const container = setupContainer();
 const postController = createPostController(container);
+
+// Simple multer configuration for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Conditional multer middleware - only apply to multipart requests
+const conditionalUpload = (req, res, next) => {
+    if (req.is('multipart/form-data')) {
+        return upload.array('media', 5)(req, res, next);
+    }
+    next();
+};
 
 // ===================== PUBLIC ROUTES =====================
 
@@ -38,23 +50,23 @@ router.use(authenticationMiddleware);
 // Create a new post
 router.post(
     '/',
-    // postUpload,
-    // postSanitizer,
-    // validateCreatePost,
+    conditionalUpload,
+    postSanitizer,
+    validateCreatePost,
     postController.createPost
 );
 
 // Update post
 router.put(
     '/:postId',
-    // postUpload,
-    // postSanitizer,
+    conditionalUpload,
+    postSanitizer,
     validateUpdatePost,
     postController.updatePost
 );
 
 // Delete post
-router.delete('/:postId', postController.deletePost);
+router.delete('/:postId', validateDeletePost, postController.deletePost);
 
 
 module.exports = router;
