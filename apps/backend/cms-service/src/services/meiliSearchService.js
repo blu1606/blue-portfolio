@@ -35,7 +35,37 @@ const createMeiliSearchService = (config = {}) => {
         }
     };
 
-    return { search };
+    const getHealth = async () => {
+        try {
+            const response = await fetch(`${config.host || process.env.MEILI_HOST}/health`);
+            if (response.ok) {
+                const health = await response.json();
+                return health;
+            } else {
+                throw new Error(`Health check failed with status: ${response.status}`);
+            }
+        } catch (error) {
+            Logger.error('MeiliSearch health check failed', { error: error.message });
+            throw error;
+        }
+    };
+
+    const getVersion = async () => {
+        try {
+            const response = await fetch(`${config.host || process.env.MEILI_HOST}/version`);
+            if (response.ok) {
+                const version = await response.json();
+                return version;
+            } else {
+                throw new Error(`Version check failed with status: ${response.status}`);
+            }
+        } catch (error) {
+            Logger.error('MeiliSearch version check failed', { error: error.message });
+            throw error;
+        }
+    };
+
+    return { search, getHealth, getVersion };
 };
 
 module.exports = { createMeiliSearchService };

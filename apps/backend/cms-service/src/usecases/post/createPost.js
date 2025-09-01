@@ -3,7 +3,7 @@ const { ConflictRequestError, BadRequestError } = require('common/core/error.res
 const { processMarkdown } = require('../../utils/markdown');
 
 const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService, rabbitmqPublisher) => {
-    return async (postData) => {
+    return async (requestData) => {
         // Destructure with defaults
         const { 
             title, 
@@ -11,7 +11,7 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
             contentType = 'html', 
             authorId, 
             files = [] 
-        } = postData;
+        } = requestData;
 
         // Basic input validation
         if (!title || typeof title !== 'string' || title.trim().length === 0) {

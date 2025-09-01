@@ -125,7 +125,16 @@ jest.mock('../src/container', () => ({
         register: jest.fn(),
         get: jest.fn().mockImplementation((name) => {
             const registry = {
-                createPostUseCase: jest.fn().mockImplementation((title, content, contentType, authorId, files) => {
+                createPostUseCase: jest.fn().mockImplementation((requestData) => {
+                    // Destructure with defaults to match the real use case
+                    const { 
+                        title, 
+                        content, 
+                        contentType = 'html', 
+                        authorId, 
+                        files = [] 
+                    } = requestData;
+
                     if (global.mockDatabaseError) {
                         global.mockDatabaseError = false; // Reset flag
                         throw { statusCode: 500, message: 'Database connection failed' };
@@ -439,8 +448,24 @@ jest.mock('../src/container', () => ({
                         updated_at: new Date().toISOString() 
                     };
                     return Promise.resolve({ 
-                        message: isAnonymous ? 'Feedback submitted successfully' : 'Feedback created successfully', 
-                        feedback: feedbackData
+                        message: isAnonymous ? 'Feedback submitted successfully! It will be reviewed by an administrator.' : 'Feedback created successfully', 
+                        feedback: {
+                            id: feedbackData.id,
+                            content: feedbackData.content,
+                            rating: feedbackData.rating,
+                            authorName: feedbackData.author_name,
+                            avatarUrl: feedbackData.avatar_url,
+                            images: feedbackData.images || [],
+                            isAnonymous: feedbackData.is_anonymous,
+                            createdAt: feedbackData.created_at,
+                            // Add fields expected by authenticated feedback tests
+                            user_id: feedbackData.user_id,
+                            is_approved: false,
+                            created_at: feedbackData.created_at,
+                            // Add fields expected by e2e tests (snake_case for anonymous)
+                            is_anonymous: feedbackData.is_anonymous,
+                            author_name: feedbackData.author_name
+                        }
                     });
                 })
             };

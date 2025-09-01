@@ -37,31 +37,31 @@ describe('CreatePost UseCase', () => {
 
     describe('Input Validation', () => {
         it('should throw BadRequestError when title is missing', async () => {
-            await expect(createPostUseCase(null, 'content', 'user123'))
+            await expect(createPostUseCase({ title: null, content: 'content', authorId: 'user123' }))
                 .rejects
                 .toThrow(BadRequestError);
         });
 
         it('should throw BadRequestError when content is missing', async () => {
-            await expect(createPostUseCase('title', null, 'user123'))
+            await expect(createPostUseCase({ title: 'title', content: null, authorId: 'user123' }))
                 .rejects
                 .toThrow(BadRequestError);
         });
 
         it('should throw BadRequestError when authorId is missing', async () => {
-            await expect(createPostUseCase('title', 'content', null))
+            await expect(createPostUseCase({ title: 'title', content: 'content', authorId: null }))
                 .rejects
                 .toThrow(BadRequestError);
         });
 
         it('should throw BadRequestError when title is empty string', async () => {
-            await expect(createPostUseCase('', 'content', 'user123'))
+            await expect(createPostUseCase({ title: '', content: 'content', authorId: 'user123' }))
                 .rejects
                 .toThrow(BadRequestError);
         });
 
         it('should throw BadRequestError when content is empty string', async () => {
-            await expect(createPostUseCase('title', '', 'user123'))
+            await expect(createPostUseCase({ title: 'title', content: '', authorId: 'user123' }))
                 .rejects
                 .toThrow(BadRequestError);
         });
@@ -84,7 +84,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            const result = await createPostUseCase(title, content, authorId);
+            const result = await createPostUseCase({ title, content, authorId });
 
             expect(result).toEqual({
                 message: 'Post created successfully',
@@ -109,7 +109,7 @@ describe('CreatePost UseCase', () => {
                 slug: 'existing-post-title'
             });
 
-            await expect(createPostUseCase(title, content, authorId))
+            await expect(createPostUseCase({ title, content, authorId }))
                 .rejects
                 .toThrow(ConflictRequestError);
 
@@ -128,7 +128,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId);
+            await createPostUseCase({ title, content, authorId });
 
             expect(mockPostRepository.findBySlug).toHaveBeenCalledWith('test-post-with-special-characters');
         });
@@ -145,7 +145,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId);
+            await createPostUseCase({ title, content, authorId });
 
             expect(mockPostRepository.create).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -165,7 +165,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId);
+            await createPostUseCase({ title, content, authorId });
 
             expect(mockPostRepository.create).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -188,7 +188,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId, []);
+            await createPostUseCase({ title, content, authorId, files: [] });
 
             expect(mockCloudinaryService.uploadFile).not.toHaveBeenCalled();
             expect(mockMediaRepository.create).not.toHaveBeenCalled();
@@ -221,7 +221,7 @@ describe('CreatePost UseCase', () => {
                 .mockResolvedValueOnce({ id: 'media2' });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId, files);
+            await createPostUseCase({ title, content, authorId, files });
 
             expect(mockCloudinaryService.uploadFile).toHaveBeenCalledTimes(2);
             expect(mockMediaRepository.create).toHaveBeenCalledTimes(2);
@@ -254,7 +254,7 @@ describe('CreatePost UseCase', () => {
             mockMediaRepository.create.mockResolvedValue({ id: 'media1' });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId, files);
+            await createPostUseCase({ title, content, authorId, files });
 
             expect(mockCloudinaryService.uploadFile).toHaveBeenCalledWith(
                 files[0].buffer,
@@ -282,7 +282,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCacheService.del.mockResolvedValue(1);
 
-            await createPostUseCase(title, content, authorId);
+            await createPostUseCase({ title, content, authorId });
 
             expect(mockCacheService.del).toHaveBeenCalledWith('posts:all');
         });
@@ -295,7 +295,7 @@ describe('CreatePost UseCase', () => {
             mockPostRepository.findBySlug.mockResolvedValue(null);
             mockPostRepository.create.mockRejectedValue(new Error('Database error'));
 
-            await expect(createPostUseCase(title, content, authorId))
+            await expect(createPostUseCase({ title, content, authorId }))
                 .rejects
                 .toThrow('Database error');
 
@@ -312,7 +312,7 @@ describe('CreatePost UseCase', () => {
             mockPostRepository.findBySlug.mockResolvedValue(null);
             mockPostRepository.create.mockRejectedValue(new Error('Database connection failed'));
 
-            await expect(createPostUseCase(title, content, authorId))
+            await expect(createPostUseCase({ title, content, authorId }))
                 .rejects
                 .toThrow('Database connection failed');
         });
@@ -331,7 +331,7 @@ describe('CreatePost UseCase', () => {
             });
             mockCloudinaryService.uploadFile.mockRejectedValue(new Error('Upload failed'));
 
-            await expect(createPostUseCase(title, content, authorId, files))
+            await expect(createPostUseCase({ title, content, authorId, files }))
                 .rejects
                 .toThrow('Upload failed');
         });
@@ -354,7 +354,7 @@ describe('CreatePost UseCase', () => {
             });
             mockMediaRepository.create.mockRejectedValue(new Error('Media creation failed'));
 
-            await expect(createPostUseCase(title, content, authorId, files))
+            await expect(createPostUseCase({ title, content, authorId, files }))
                 .rejects
                 .toThrow('Media creation failed');
         });
