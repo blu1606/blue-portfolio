@@ -4,3 +4,10 @@ coverage/
 jest-results*.json
 /.vscode/
 dist/
+
+# Documentation and development notes
+mem_bank/
+*.md
+src/db/migrations/deployment.log
+src/db/migrations/backup_*.sql
+src/db/migrations/deploy-migration.js

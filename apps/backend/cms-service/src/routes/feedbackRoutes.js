@@ -46,12 +46,10 @@ router.post(
 
 // ===================== ADMIN ROUTES =====================
 
-router.use(authorize('admin'));
+// Get all feedbacks for admin (requires authentication and admin role)
+router.get('/admin', authenticationMiddleware, authorize('admin'), feedbackController.getAllFeedbacksForAdmin);
 
-// Get all feedbacks for admin
-router.get('/admin', feedbackController.getAllFeedbacksForAdmin);
-
-// Approve a feedback
-router.put('/:feedbackId/approve', feedbackController.approveFeedback);
+// Approve a feedback (requires authentication and admin role)
+router.put('/:feedbackId/approve', authenticationMiddleware, authorize('admin'), feedbackController.approveFeedback);
 
 module.exports = router;

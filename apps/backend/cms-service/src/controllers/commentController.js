@@ -49,7 +49,12 @@ const createCommentController = (container) => {
 
         getCommentsByPost: asyncHandler(async (req, res) => {
             try {
-                const { postId } = req.params;
+                // Support both params and query for postId
+                const postId = req.params.postId || req.query.postId;
+                
+                if (!postId) {
+                    throw new BadRequestError('Post ID is required');
+                }
                 
                 const getCommentsByPostUseCase = container.get('getCommentsByPostUseCase');
                 const result = await getCommentsByPostUseCase(postId);
