@@ -1,16 +1,39 @@
 // src/routes/authRoutes.js
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { setupContainer } = require('../bootstrap');
 const { createAuthController } = require('../controllers/authController');
 const { authenticationMiddleware } = require('common/middlewares/authentication');
+const { createAuthenticationMiddleware } = require('../middlewares/authenticatedMiddleware');
 const { validateRequest } = require('common/middlewares/validationMiddleware');
 const { rateLimitMiddleware } = require('common/middlewares/rateLimitMiddleware');
+const { avatarUpload } = require('../utils/multer');
 
 const router = express.Router();
 
 // Initialize the dependency injection container and controllers
 const container = setupContainer();
 const authController = createAuthController(container);
+
+// Create enhanced authentication middleware with token blacklist support
+const enhancedAuthMiddleware = createAuthenticationMiddleware(container.get('tokenBlacklistService'));
+
+// Create simple rate limits for now
+const strictRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Very strict limit for sensitive operations
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Moderate limit for auth operations
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please try again later.' }
+});
 
 // Define validation schemas (Note: they are part of the route file and not moved to a separate middleware file)
 const registerSchema = {
@@ -53,6 +76,7 @@ const resetPasswordSchema = {
 
 // User Registration
 router.post('/register',
+    authRateLimit,
     rateLimitMiddleware('register'),
     validateRequest(registerSchema),
     authController.register
@@ -60,6 +84,7 @@ router.post('/register',
 
 // User Login
 router.post('/login',
+    authRateLimit,
     rateLimitMiddleware('login'),
     validateRequest(loginSchema),
     authController.login
@@ -67,6 +92,7 @@ router.post('/login',
 
 // Request Password Reset OTP
 router.post('/request-otp',
+    strictRateLimit,
     rateLimitMiddleware('otp-request'),
     validateRequest(otpRequestSchema),
     authController.requestPasswordReset // Corrected method name
@@ -74,6 +100,7 @@ router.post('/request-otp',
 
 // Validate OTP
 router.post('/validate-otp',
+    strictRateLimit,
     rateLimitMiddleware('otp-validate'),
     validateRequest(otpValidateSchema),
     authController.validateOTP
@@ -81,6 +108,7 @@ router.post('/validate-otp',
 
 // Reset Password
 router.post('/reset-password',
+    strictRateLimit,
     rateLimitMiddleware('password-reset'),
     validateRequest(resetPasswordSchema),
     authController.resetPassword
@@ -104,8 +132,8 @@ router.post('/resend-verification',
     authController.resendVerification
 );
 
-// Apply authentication middleware to all routes below
-router.use(authenticationMiddleware);
+// Apply enhanced authentication middleware to all routes below
+router.use(enhancedAuthMiddleware);
 
 // ===================== PROTECTED ROUTES =====================
 
@@ -124,6 +152,21 @@ router.post('/change-password',
         }
     }),
     authController.changePassword
+);
+
+// Update Profile (authenticated users)
+router.put('/profile',
+    rateLimitMiddleware('profile-update'),
+    avatarUpload, // Handle avatar file upload
+    validateRequest({
+        body: {
+            username: { type: 'string', minLength: 3, maxLength: 50 },
+            bio: { type: 'string', maxLength: 500 },
+            location: { type: 'string', maxLength: 100 },
+            website: { type: 'string', maxLength: 200 }
+        }
+    }),
+    authController.updateProfile
 );
 
 // Logout

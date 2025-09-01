@@ -1,5 +1,5 @@
-const { SuccessResponse, CREATED } = require('common/core/success.response.js');
-const { AuthFailureError } = require('common/core/error.response.js');
+const { SuccessResponse, CREATED } = require('common/core/success.response');
+const { AuthFailureError } = require('common/core/error.response');
 const asyncHandler = require('common/helpers/asyncHandler');
 
 /**
@@ -84,23 +84,25 @@ const createAuthController = (container) => {
 
     getMe: asyncHandler(async (req, res) => {
       const user = req.user;
+      const getUserProfileUseCase = container.get('getUserProfileUseCase');
+      
+      const result = await getUserProfileUseCase(user.id);
       
       new SuccessResponse({
         message: 'User profile retrieved successfully!',
-        metadata: { user },
+        metadata: result,
       }).send(res);
     }),
 
     logout: asyncHandler(async (req, res) => {
-      const user = req.user;
-      const auditDetails = extractAuditDetails(req);
+      const logoutUseCase = container.get('logoutUseCase');
+      const result = await logoutUseCase.execute(req);
 
       const auditService = container.get('auditService');
-      await auditService.log('USER_LOGOUT', user.email, true, auditDetails);
+      const auditDetails = extractAuditDetails(req);
+      await auditService.log('USER_LOGOUT', req.user.email, true, auditDetails);
 
-      new SuccessResponse({
-        message: 'Logout successful!',
-      }).send(res);
+      result.send(res);
     }),
 
     refreshToken: asyncHandler(async (req, res) => {
@@ -183,6 +185,21 @@ const createAuthController = (container) => {
 
       new SuccessResponse({
         message: result.message,
+      }).send(res);
+    }),
+
+    updateProfile: asyncHandler(async (req, res) => {
+      const user = req.user;
+      const profileData = req.body;
+      const avatarFile = req.file;
+      const auditDetails = extractAuditDetails(req);
+
+      const updateUserProfileUseCase = container.get('updateUserProfileUseCase');
+      const result = await updateUserProfileUseCase(user.id, profileData, avatarFile, auditDetails);
+
+      new SuccessResponse({
+        message: 'Profile updated successfully!',
+        metadata: result,
       }).send(res);
     }),
   };
