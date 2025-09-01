@@ -55,7 +55,7 @@ const feedbackUploadFields = feedbackUpload.fields([
 ]);
 
 module.exports = {
-  postUpload: postUpload.array('files', MAX_FILES_POST),
+  postUpload: postUpload.array('media', MAX_FILES_POST),
   feedbackUpload,
   feedbackUploadFields
 };

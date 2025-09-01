@@ -50,7 +50,7 @@ const updatePostSchema = {
     properties: {
       title: {
         type: 'string',
-        minLength: 1,
+        minLength: 3,
         maxLength: 255
       },
       content: {
@@ -74,8 +74,21 @@ const updatePostSchema = {
         maxItems: 10
       }
     },
-    additionalProperties: false
+    additionalProperties: true
   },
+  params: {
+    type: 'object',
+    properties: {
+      postId: {
+        type: 'string',
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+      }
+    },
+    required: ['postId']
+  }
+};
+
+const deletePostSchema = {
   params: {
     type: 'object',
     properties: {
@@ -210,6 +223,7 @@ const searchSchema = {
 module.exports = {
   validateCreatePost: validateRequest(createPostSchema),
   validateUpdatePost: validateRequest(updatePostSchema),
+  validateDeletePost: validateRequest(deletePostSchema),
   validateCreateFeedback: validateRequest(createFeedbackSchema),
   validateCreateAnonymousFeedback: validateRequest(createAnonymousFeedbackSchema),
   validateCreateComment: validateRequest(createCommentSchema),
