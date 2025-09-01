@@ -33,6 +33,7 @@ const { createCloudinaryService } = require('./services/cloudinaryService');
 const { createTagService } = require('./services/tagService');
 const { createSoftDeleteService } = require('./services/softDeleteService');
 const { createPostService } = require('./services/postService');
+const ConnectionTestService = require('./services/connectionTestService');
 
 const setupContainer = () => {
   const container = new Container();
@@ -173,6 +174,11 @@ const setupContainer = () => {
     return createMeiliSearchPostsUseCase(container.get('meiliSearchService'));
   });
 
+  // Connection test service
+  container.register('connectionTestService', () => {
+    return new ConnectionTestService();
+  }, { singleton: true });
+
   // createPostUseCase (depends on rabbitmqPublisher and meili usecase)
   container.register('createPostUseCase', (container) => {
     return createCreatePostUseCase(
@@ -189,4 +195,10 @@ const setupContainer = () => {
   return container;
 };
 
-module.exports = { setupContainer };
+// Function to test all connections during startup
+const testConnections = async (container) => {
+  const connectionTestService = container.get('connectionTestService');
+  return await connectionTestService.testAllConnections();
+};
+
+module.exports = { setupContainer, testConnections };

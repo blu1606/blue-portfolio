@@ -1,7 +1,7 @@
 // src/usecases/deletePost.js
 const { BadRequestError, NotFoundError, ForbiddenError } = require('common/core/error.response');
 
-const createDeletePostUseCase = (postRepository) => {
+const createDeletePostUseCase = (postRepository, cacheService) => {
   return async (postId, authorId) => {
     // 1. Kiểm tra đầu vào
     if (!postId || !authorId) {
@@ -22,11 +22,13 @@ const createDeletePostUseCase = (postRepository) => {
     await postRepository.remove(postId);
 
     // 4. Cache Invalidation: Xóa cache liên quan
-    const cacheKey = `post:slug:${existingPost.slug}`;
-    await cacheService.del(cacheKey);
+    if (cacheService) {
+      const cacheKey = `post:slug:${existingPost.slug}`;
+      await cacheService.del(cacheKey);
 
-    // Xóa cache của danh sách bài viết để đảm bảo tính đồng bộ
-    await cacheService.delByPattern('posts:all:*');
+      // Xóa cache của danh sách bài viết để đảm bảo tính đồng bộ
+      await cacheService.delByPattern('posts:all:*');
+    }
 
     
     return {

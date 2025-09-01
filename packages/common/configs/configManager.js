@@ -129,8 +129,8 @@ class ConfigManager {
       errors.push('Default page limit cannot be greater than max page limit');
     }
 
-    if (this.config.validation.minPasswordLength < 6) {
-      errors.push('Minimum password length must be at least 6 characters');
+    if (this.config.validation.minPasswordLength < 8) {
+      errors.push('Minimum password length must be at least 8 characters');
     }
 
     if (errors.length > 0) {

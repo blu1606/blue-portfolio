@@ -19,7 +19,7 @@ const processMarkdown = (markdownContent) => {
     const rawHtml = markdown.render(markdownContent)
     // 2. sanitize HTML to prevent the XSS attack
     const sanitizedHtml = sanitizeHtml(rawHtml, sanitizeOptions)
-    return sanitizeHtml;
+    return sanitizedHtml;
 }
 
 module.exports = { processMarkdown };
