@@ -7,15 +7,79 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // Mock JWT_SECRET environment variable
 process.env.JWT_SECRET = 'test-secret-key';
 
+// First, mock the Supabase module factory before any imports
+jest.mock('@supabase/supabase-js', () => ({
+    createClient: jest.fn(() => {
+        const createChainableMock = () => ({
+            select: jest.fn().mockReturnThis(),
+            insert: jest.fn().mockReturnThis(), 
+            update: jest.fn().mockReturnThis(),
+            delete: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            neq: jest.fn().mockReturnThis(),
+            gt: jest.fn().mockReturnThis(),
+            lt: jest.fn().mockReturnThis(),
+            gte: jest.fn().mockReturnThis(),
+            lte: jest.fn().mockReturnThis(),
+            like: jest.fn().mockReturnThis(),
+            ilike: jest.fn().mockReturnThis(),
+            is: jest.fn().mockReturnThis(),
+            in: jest.fn().mockReturnThis(),
+            contains: jest.fn().mockReturnThis(),
+            containedBy: jest.fn().mockReturnThis(),
+            single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+            maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+            then: jest.fn((cb) => cb({ data: null, error: null }))
+        });
+        
+        return createChainableMock();
+    })
+}));
+
 
 
 // Mock Supabase
-jest.mock('../src/db/initSupabase', () => ({
-    from: jest.fn(() => ({
-        select: jest.fn(() => ({
-            eq: jest.fn((column, value) => {
-                if (column === 'email' && value === 'test@example.com') {
-                    return { single: jest.fn(() => Promise.resolve({ 
+jest.mock('../src/db/initSupabase', () => {
+    const createChainableMock = () => {
+        const mockChain = {
+            select: jest.fn().mockReturnThis(),
+            insert: jest.fn().mockReturnThis(),
+            update: jest.fn().mockReturnThis(),
+            delete: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            neq: jest.fn().mockReturnThis(),
+            gt: jest.fn().mockReturnThis(),
+            lt: jest.fn().mockReturnThis(),
+            gte: jest.fn().mockReturnThis(),
+            lte: jest.fn().mockReturnThis(),
+            like: jest.fn().mockReturnThis(),
+            ilike: jest.fn().mockReturnThis(),
+            is: jest.fn().mockReturnThis(),
+            in: jest.fn().mockReturnThis(),
+            contains: jest.fn().mockReturnThis(),
+            containedBy: jest.fn().mockReturnThis(),
+            rangeGt: jest.fn().mockReturnThis(),
+            rangeGte: jest.fn().mockReturnThis(),
+            rangeLt: jest.fn().mockReturnThis(),
+            rangeLte: jest.fn().mockReturnThis(),
+            rangeAdjacent: jest.fn().mockReturnThis(),
+            overlaps: jest.fn().mockReturnThis(),
+            textSearch: jest.fn().mockReturnThis(),
+            filter: jest.fn().mockReturnThis(),
+            order: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            range: jest.fn().mockReturnThis(),
+            single: jest.fn(() => Promise.resolve({ data: null, error: { message: 'Not found in test', code: 'PGRST116' } })),
+            maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+            then: jest.fn((cb) => cb({ data: null, error: null }))
+        };
+        
+        // Override specific methods for custom behavior
+        mockChain.eq = jest.fn((column, value) => {
+            // Handle user lookups for select operations
+            if (column === 'email' && value === 'test@example.com') {
+                return { 
+                    single: jest.fn(() => Promise.resolve({ 
                         data: {
                             id: 'user123',
                             username: 'testuser',
@@ -31,9 +95,11 @@ jest.mock('../src/db/initSupabase', () => ({
                             session_version: 1
                         },
                         error: null 
-                    })) };
-                } else if (column === 'id' && value === 'user123') {
-                    return { single: jest.fn(() => Promise.resolve({ 
+                    })) 
+                };
+            } else if (column === 'id' && value === 'user123') {
+                return { 
+                    single: jest.fn(() => Promise.resolve({ 
                         data: {
                             id: 'user123',
                             username: 'testuser',
@@ -49,11 +115,13 @@ jest.mock('../src/db/initSupabase', () => ({
                             session_version: 1
                         },
                         error: null 
-                    })) };
-                } else if (column === 'email' && value === 'nonexistent@example.com') {
-                    return { single: jest.fn(() => Promise.resolve({ data: null, error: { code: 'PGRST116' } })) };
-                } else if (column === 'email' && value === 'locked@example.com') {
-                    return { single: jest.fn(() => Promise.resolve({ 
+                    })) 
+                };
+            } else if (column === 'email' && value === 'nonexistent@example.com') {
+                return { single: jest.fn(() => Promise.resolve({ data: null, error: { code: 'PGRST116' } })) };
+            } else if (column === 'email' && value === 'locked@example.com') {
+                return { 
+                    single: jest.fn(() => Promise.resolve({ 
                         data: {
                             id: 'user456',
                             username: 'lockeduser',
@@ -64,9 +132,11 @@ jest.mock('../src/db/initSupabase', () => ({
                             session_version: 1
                         },
                         error: null 
-                    })) };
-                } else if (column === 'email' && value === 'unverified@example.com') {
-                    return { single: jest.fn(() => Promise.resolve({ 
+                    })) 
+                };
+            } else if (column === 'email' && value === 'unverified@example.com') {
+                return { 
+                    single: jest.fn(() => Promise.resolve({ 
                         data: {
                             id: 'user789',
                             username: 'unverifieduser',
@@ -77,37 +147,60 @@ jest.mock('../src/db/initSupabase', () => ({
                             session_version: 1
                         },
                         error: null 
-                    })) };
-                }
-                return { single: jest.fn(() => Promise.resolve({ data: null, error: null })) };
-            })
-        })),
-        insert: jest.fn((data) => ({
-            select: jest.fn(() => ({
-                single: jest.fn(() => {
-                    if (data[0].email === 'existing@example.com') {
-                        return Promise.resolve({ data: null, error: { code: '23505', message: 'Duplicate key' } });
-                    } else if (data[0].email === 'newuser@example.com') {
-                        return Promise.resolve({
-                            data: {
-                                id: 'new-user-id',
-                                username: data[0].username,
-                                email: data[0].email,
-                                email_verified: false,
-                                account_locked: false
-                            },
-                            error: null
-                        });
-                    }
-                    return Promise.resolve({ data: data[0], error: null });
-                })
-            }))
-        })),
-        update: jest.fn(() => ({
-            eq: jest.fn(() => Promise.resolve({ data: null, error: null }))
-        }))
-    }))
-}));
+                    })) 
+                };
+            }
+            
+            // For update operations, just return a promise
+            return Promise.resolve({ data: null, error: null });
+        });
+        
+        return mockChain;
+    };
+    
+    return {
+        from: jest.fn(() => {
+            const mock = createChainableMock();
+            
+            // Special handling for insert operations
+            mock.insert = jest.fn((data) => {
+                const chainable = createChainableMock();
+                chainable.select = jest.fn(() => {
+                    const selectable = createChainableMock();
+                    selectable.single = jest.fn(() => {
+                        const payload = Array.isArray(data) ? data[0] : data;
+                        if (payload.email === 'existing@example.com') {
+                            return Promise.resolve({ data: null, error: { code: '23505', message: 'Duplicate key' } });
+                        } else if (payload.email === 'newuser@example.com') {
+                            return Promise.resolve({
+                                data: {
+                                    id: 'new-user-id',
+                                    username: payload.username,
+                                    email: payload.email,
+                                    email_verified: false,
+                                    account_locked: false
+                                },
+                                error: null
+                            });
+                        }
+                        return Promise.resolve({ data: payload, error: null });
+                    });
+                    return selectable;
+                });
+                return chainable;
+            });
+            
+            // Special handling for update operations
+            mock.update = jest.fn((data) => {
+                const chainable = createChainableMock();
+                chainable.eq = jest.fn(() => Promise.resolve({ data: null, error: null }));
+                return chainable;
+            });
+            
+            return mock;
+        })
+    };
+});
 
 // Mock common package
 jest.mock('common/middlewares/authentication', () => ({

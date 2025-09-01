@@ -19,7 +19,21 @@ describe('GET /api/v1/auth/me', () => {
 
         expect(response.status).toBe(200);
         expect(response.body.message).toEqual('User profile retrieved successfully!');
-        expect(response.body.metadata).toEqual(mockPayload);
+        expect(response.body.metadata).toEqual({
+            user: {
+                id: 'user123',
+                username: 'testuser',
+                email: 'test@example.com',
+                email_verified: true,
+                profile_picture_url: null,
+                bio: null,
+                location: null,
+                website: null,
+                created_at: null,
+                updated_at: null,
+                last_login_at: null
+            }
+        });
     });
 
     it('should return 401 Unauthorized if no token is provided', async () => {
