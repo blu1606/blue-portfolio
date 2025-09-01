@@ -58,13 +58,15 @@ class DatabaseErrorHandler {
     }
   }
 
-  static async executeQuery(operation, table, query, params = []) {
-    return this.executeWithErrorHandling(operation, table, async () => {
-      // This would be implemented with the actual database client
-      // For now, it's a placeholder
-      logger.debug(`Executing query on ${table}`, { operation, params: params.length });
-      throw new Error('Not implemented - should use actual database client');
-    });
+  /**
+   * Executes a database query with error handling.
+   * @param {string} operation - The operation name.
+   * @param {string} table - The table name.
+   * @param {Function} fn - The function that performs the database query.
+   * @returns {Promise<*>}
+   */
+  static async executeQuery(operation, table, fn) {
+    return this.executeWithErrorHandling(operation, table, fn);
   }
 
   // Helper methods for common operations

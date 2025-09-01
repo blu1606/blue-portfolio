@@ -3,40 +3,28 @@ const { ConflictRequestError, BadRequestError } = require('common/core/error.res
 const { processMarkdown } = require('../../utils/markdown');
 
 const createCreatePostUseCase = (postRepository, cloudinaryService, mediaRepository, cacheService, rabbitmqPublisher) => {
-    return async (title, content, contentType, authorId, files = []) => {
-        // Basic input validation for use case
+    return async (postData) => {
+        // Destructure with defaults
+        const { 
+            title, 
+            content, 
+            contentType = 'html', 
+            authorId, 
+            files = [] 
+        } = postData;
+
+        // Basic input validation
         if (!title || typeof title !== 'string' || title.trim().length === 0) {
             throw new BadRequestError('Title is required and must be a non-empty string');
         }
         if (!content || typeof content !== 'string' || content.trim().length === 0) {
             throw new BadRequestError('Content is required and must be a non-empty string');
         }
-        
-        // Support legacy and new signatures:
-        // Old: (title, content, authorId, files)
-        // New: (title, content, contentType, authorId, files)
-        let resolvedContentType = contentType;
-        let resolvedAuthorId = authorId;
-        let resolvedFiles = files || [];
-
-        if (resolvedAuthorId === undefined) {
-            // Called as (title, content, authorId)
-            resolvedAuthorId = contentType;
-            resolvedContentType = 'html';
-            resolvedFiles = [];
-        } else if (Array.isArray(resolvedAuthorId) && typeof contentType === 'string' && !['html','markdown'].includes(contentType)) {
-            // Called as (title, content, authorId, files)
-            resolvedFiles = authorId;
-            resolvedAuthorId = contentType;
-            resolvedContentType = 'html';
-        } else {
-            resolvedContentType = contentType || 'html';
-            resolvedFiles = files || [];
-        }
-
-        // Validate resolved authorId
-        if (!resolvedAuthorId || typeof resolvedAuthorId !== 'string' || resolvedAuthorId.trim().length === 0) {
+        if (!authorId || typeof authorId !== 'string' || authorId.trim().length === 0) {
             throw new BadRequestError('Author ID is required and must be a non-empty string');
+        }
+        if (!['html', 'markdown'].includes(contentType)) {
+            throw new BadRequestError('Content type must be either "html" or "markdown"');
         }
 
         const slug = slugify(title, { lower: true, strict: true})
@@ -48,10 +36,12 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
         let content_html = null;
         let content_markdown = null;
 
-        if (resolvedContentType == 'markdown') {
+        if (contentType === 'markdown') {
             content_markdown = content;
             content_html = processMarkdown(content);
-        } else content_html = content;
+        } else {
+            content_html = content;
+        }
 
         const postData = {
             title, 
@@ -67,8 +57,8 @@ const createCreatePostUseCase = (postRepository, cloudinaryService, mediaReposit
     const newPost = await postRepository.create(postData);
 
         // upload files to Cloudinary and save to media table
-        if (resolvedFiles.length > 0) {
-            for (const file of resolvedFiles) {
+        if (files.length > 0) {
+            for (const file of files) {
                 const resourceType = file.mimetype.startsWith('video') ? 'video' : 'image';
                 const { publicId, url } = await cloudinaryService.uploadFile(file.buffer, resourceType);
                 await mediaRepository.create({

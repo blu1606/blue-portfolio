@@ -8,9 +8,28 @@ const { createLogger } = require('./logger');
 const { BadRequestError } = require('../core/error.response');
 
 class RepositoryHelper {
-  constructor(tableName) {
+  constructor(tableName, entityName = null) {
     this.tableName = tableName;
+    this.entityName = entityName || this.singularize(tableName);
     this.logger = createLogger(`${tableName}Repository`);
+  }
+
+  /**
+   * Simple singularization helper
+   * @param {string} plural - The plural form
+   * @returns {string} The singular form
+   */
+  singularize(plural) {
+    const singularRules = {
+      'posts': 'post',
+      'comments': 'comment',
+      'media': 'media',
+      'feedback': 'feedback',
+      'tags': 'tag',
+      'users': 'user'
+    };
+    
+    return singularRules[plural] || plural.replace(/s$/, '');
   }
 
   async executeQuery(operation, queryFn) {
@@ -24,7 +43,7 @@ class RepositoryHelper {
         error: error.message,
         code: error.code
       });
-      throw new BadRequestError(`Failed to ${operation.toLowerCase()} ${this.tableName.slice(0, -1)}`);
+      throw new BadRequestError(`Failed to ${operation.toLowerCase()} ${this.entityName}`);
     }
   }
 
@@ -37,7 +56,7 @@ class RepositoryHelper {
         error: error.message,
         code: error.code
       });
-      throw new BadRequestError(`Failed to ${operation.toLowerCase()} ${this.tableName.slice(0, -1)}`);
+      throw new BadRequestError(`Failed to ${operation.toLowerCase()} ${this.entityName}`);
     }
   }
 

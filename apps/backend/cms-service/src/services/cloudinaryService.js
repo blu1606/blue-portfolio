@@ -115,7 +115,7 @@ const createCloudinaryService = () => {
             const result = await cloudinary.uploader.destroy(publicId);
             return result;
         } catch (error) {
-            console.error('Cloudinary delete error:', error);
+            logger.error('Cloudinary delete error:', error);
             throw new InternalServerError('Failed to delete file from Cloudinary.');
         }
     };
@@ -133,7 +133,7 @@ const createCloudinaryService = () => {
             const results = await Promise.all(deletePromises);
             return results;
         } catch (error) {
-            console.error('Cloudinary bulk delete error:', error);
+            logger.error('Cloudinary bulk delete error:', error);
             throw new InternalServerError('Failed to delete files from Cloudinary.');
         }
     };

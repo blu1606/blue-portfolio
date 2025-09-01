@@ -240,7 +240,7 @@ class CommonUtils {
       return JSON.stringify(obj, null, space);
     } catch (error) {
       logger.warn('Failed to stringify object', { error: error.message });
-      return '[Circular Reference]';
+      return '[Failed to stringify object]';
     }
   }
 

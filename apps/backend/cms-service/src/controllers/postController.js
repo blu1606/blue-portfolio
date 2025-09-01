@@ -38,13 +38,13 @@ const createPostController = (container) => {
                 const { files } = validatePostFiles(req.files);
 
                 const createPostUseCase = container.get('createPostUseCase');
-                const result = await createPostUseCase(
-                    validatedData.title,
-                    validatedData.content,
-                    validatedData.contentType,
+                const result = await createPostUseCase({
+                    title: validatedData.title,
+                    content: validatedData.content,
+                    contentType: validatedData.contentType,
                     authorId,
                     files
-                );
+                });
 
                 const metadata = result?.post || result;
 
