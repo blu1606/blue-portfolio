@@ -5,7 +5,12 @@ const createUserRepository = (supabase) => {
   const findByEmail = async (email) => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, account_locked, otp_hash, otp_generated_at, otp_attempts, reset_token, reset_token_expiry, session_version')
+      .select(`
+        id, username, email, password_hash, email_verified, account_locked, 
+        otp_hash, otp_generated_at, otp_attempts, reset_token, reset_token_expiry, 
+        session_version, created_at, updated_at, last_login_at, profile_picture_url,
+        bio, location, website
+      `)
       .eq('email', email)
       .single();
       
@@ -22,7 +27,12 @@ const createUserRepository = (supabase) => {
   const findById = async (userId) => {
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, password_hash, email_verified, account_locked, otp_hash, otp_generated_at, otp_attempts, reset_token, reset_token_expiry, session_version')
+      .select(`
+        id, username, email, password_hash, email_verified, account_locked, 
+        otp_hash, otp_generated_at, otp_attempts, reset_token, reset_token_expiry, 
+        session_version, created_at, updated_at, last_login_at, profile_picture_url,
+        bio, location, website
+      `)
       .eq('id', userId)
       .single();
       
@@ -83,12 +93,50 @@ const createUserRepository = (supabase) => {
     }
   };
 
+  const updateProfile = async (userId, profileData) => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        ...profileData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select(`
+        id, username, email, email_verified, created_at, updated_at, 
+        last_login_at, profile_picture_url, bio, location, website
+      `)
+      .single();
+      
+    if (error) {
+      console.error('Database error updating profile:', error);
+      throw new Error('Failed to update profile');
+    }
+    return data;
+  };
+
+  const updateLastLogin = async (userId) => {
+    const { error } = await supabase
+      .from('users')
+      .update({ 
+        last_login_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+      
+    if (error) {
+      console.error('Database error updating last login:', error);
+      // Don't throw error for last login update
+    }
+  };
+
   return {
     findByEmail,
     findById,
     create,
     updateOTPData,
-    updatePassword
+    updatePassword,
+    updateProfile,
+    updateLastLogin
   };
 };
 
