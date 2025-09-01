@@ -85,10 +85,58 @@ const validateResetToken = (resetToken) => {
   }
 };
 
+const validateString = (value, fieldName, minLength = 1, maxLength = 255) => {
+  if (value === null || value === undefined) {
+    throw new BadRequestError(`${fieldName} is required`);
+  }
+  
+  if (typeof value !== 'string') {
+    throw new BadRequestError(`${fieldName} must be a string`);
+  }
+  
+  const trimmed = value.trim();
+  if (trimmed.length < minLength) {
+    throw new BadRequestError(`${fieldName} must be at least ${minLength} characters long`);
+  }
+  
+  if (trimmed.length > maxLength) {
+    throw new BadRequestError(`${fieldName} must not exceed ${maxLength} characters`);
+  }
+  
+  return trimmed;
+};
+
+const validateOptional = (value, fieldName, minLength = 0, maxLength = 255) => {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  
+  if (typeof value !== 'string') {
+    throw new BadRequestError(`${fieldName} must be a string`);
+  }
+  
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  
+  if (trimmed.length < minLength) {
+    throw new BadRequestError(`${fieldName} must be at least ${minLength} characters long`);
+  }
+  
+  if (trimmed.length > maxLength) {
+    throw new BadRequestError(`${fieldName} must not exceed ${maxLength} characters`);
+  }
+  
+  return trimmed;
+};
+
 module.exports = {
   validateEmail,
   validatePassword,
   validateOTPFormat,
   validateRefreshToken,
-  validateResetToken
+  validateResetToken,
+  validateString,
+  validateOptional
 };
