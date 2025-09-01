@@ -16,7 +16,9 @@
     "./utils/repositoryHelper": "./utils/repositoryHelper.js",
     "./core/error.response": "./core/error.response.js",
     "./core/success.response": "./core/success.response.js",
-    "./middlewares/validationMiddleware": "./middlewares/validationMiddleware.js"
+    "./middlewares/validationMiddleware": "./middlewares/validationMiddleware.js",
+    "./middlewares/authentication": "./middlewares/authentication.js",
+    "./middlewares/rateLimitMiddleware": "./middlewares/rateLimitMiddleware.js"
   },
   "scripts": {
     "test": "jest",

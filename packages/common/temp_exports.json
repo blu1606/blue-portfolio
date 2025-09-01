@@ -1,0 +1,16 @@
+  "exports": {
+    ".": "./index.js",
+    "./core/*": "./core/*",
+    "./utils/*": "./utils/*",
+    "./configs/*": "./configs/*",
+    "./services/*": "./services/*",
+    "./helpers/*": "./helpers/*",
+    "./middlewares/*": "./middlewares/*",
+    "./helpers/asyncHandler": "./helpers/asyncHandler.js",
+    "./utils/logger": "./utils/logger.js",
+    "./utils/repositoryHelper": "./utils/repositoryHelper.js",
+    "./core/error.response": "./core/error.response.js",
+    "./core/success.response": "./core/success.response.js",
+    "./middlewares/validationMiddleware": "./middlewares/validationMiddleware.js",
+    "./middlewares/authentication": "./middlewares/authentication.js"
+  },

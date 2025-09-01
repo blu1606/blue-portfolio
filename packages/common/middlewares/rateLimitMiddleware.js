@@ -12,8 +12,9 @@ const createRateLimiter = (options) => {
       throw new TooManyRequestsError(options.message || 'Rate limit exceeded');
     },
     keyGenerator: (req) => {
-      // Use IP + user ID if authenticated, otherwise just IP
-      return req.user?.id ? `${req.ip}-${req.user.id}` : req.ip;
+      // Use proper IPv6 handling with IP + user ID if authenticated
+      const ip = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 'unknown';
+      return req.user?.id ? `${ip}-${req.user.id}` : ip;
     }
   });
 };
@@ -26,7 +27,8 @@ const rateLimitConfigs = {
   'password-reset': { max: 3, windowMs: 60 * 60 * 1000, message: 'Too many password reset attempts' },
   'change-password': { max: 5, windowMs: 60 * 60 * 1000, message: 'Too many password change attempts' },
   'refresh': { max: 20, windowMs: 60 * 60 * 1000, message: 'Too many token refresh attempts' },
-  'resend-verification': { max: 3, windowMs: 60 * 60 * 1000, message: 'Too many verification resend attempts' }
+  'resend-verification': { max: 3, windowMs: 60 * 60 * 1000, message: 'Too many verification resend attempts' },
+  'profile-update': { max: 10, windowMs: 60 * 60 * 1000, message: 'Too many profile update attempts' }
 };
 
 const rateLimitMiddleware = (type) => {
@@ -37,4 +39,7 @@ const rateLimitMiddleware = (type) => {
   return createRateLimiter(config);
 };
 
-module.exports = { rateLimitMiddleware };
+module.exports = {
+  rateLimitMiddleware,
+  createRateLimiter
+};
