@@ -1,5 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const { TooManyRequestsError } = require('common/core/error.response');
+const { TooManyRequestsError } = require('../core/error.response');
 
 const createRateLimiter = (options) => {
   return rateLimit({
