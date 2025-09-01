@@ -5,7 +5,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
-const swaggerUi = require('swagger-ui-express');
 
 const postRoutes = require('./routes/postRoutes');
 const commentRoutes = require('./routes/commentRoutes');
@@ -19,7 +18,7 @@ const {
   memoryMonitor,
   requestRateMonitor
 } = require('./middlewares/performanceMiddleware.simple');
-const { swaggerSpec, swaggerOptions } = require('./docs/swagger.config');
+const { swaggerUi, specs } = require('./docs/swagger.config');
 
 const app = express();
 
@@ -52,7 +51,7 @@ app.use(morgan('combined'));
 app.use(compression());
 
 // API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
 app.use('/api/v1/posts', postRoutes);

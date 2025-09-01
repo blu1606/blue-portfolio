@@ -2,7 +2,7 @@
 const express = require('express');
 const { setupContainer } = require('../bootstrap');
 const { createCommentController } = require('../controllers/commentController');
-const { authenticationMiddleware } = require('common/middlewares/authentication');
+const { authenticationMiddleware } = require('../../../../../packages/common/middlewares/authentication');
 const { commentSanitizer } = require('../middlewares/inputSanitizer');
 const { validateCreateComment } = require('../middlewares/validationSchemas');
 

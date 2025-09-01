@@ -3,7 +3,7 @@ const express = require('express');
 const multer = require('multer');
 const { setupContainer } = require('../bootstrap');
 const { createPostController } = require('../controllers/postController');
-const { authenticationMiddleware } = require('common/middlewares/authentication');
+const { authenticationMiddleware } = require('../../../../../packages/common/middlewares/authentication');
 const { postSanitizer, inputSanitizer } = require('../middlewares/inputSanitizer');
 const { 
   validateCreatePost, 

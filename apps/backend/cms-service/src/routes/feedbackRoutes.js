@@ -2,8 +2,8 @@
 const express = require('express');
 const { setupContainer } = require('../bootstrap');
 const { createFeedbackController } = require('../controllers/feedbackController');
-const { authenticationMiddleware } = require('common/middlewares/authentication');
-const { authorize } = require('common/middlewares/authorizationMiddleware');
+const { authenticationMiddleware } = require('../../../../../packages/common/middlewares/authentication');
+const { authorize } = require('../../../../../packages/common/middlewares/authorizationMiddleware');
 const { feedbackUploadFields } = require('../utils/multer');
 const { createSimpleLimiter } = require('../middlewares/rateLimiter');
 const { feedbackSanitizer } = require('../middlewares/inputSanitizer');
