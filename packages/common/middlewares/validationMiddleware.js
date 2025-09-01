@@ -1,6 +1,6 @@
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
-const { BadRequestError } = require('common/core/error.response');
+const { BadRequestError } = require('../core/error.response');
 
 const ajv = new Ajv();
 addFormats(ajv);

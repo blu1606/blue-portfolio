@@ -31,11 +31,19 @@ app.use((req, res, next) => {
 
 // Handling general error
 app.use((error, req, res, next) => {
-    const statusCode = error.status || statusCode.INTERNAL_SERVER_ERROR;
+    const statusCode = error.status || error.statusCode || 500;
+    
+    // Log error for debugging
+    console.error('Error occurred:', {
+        message: error.message,
+        stack: error.stack,
+        statusCode
+    });
+    
     return res.status(statusCode).json({
         status: 'error',
         code: statusCode,
-        message: error.message || reasonPhrases.INTERNAL_SERVER_ERROR
+        message: error.message || 'Internal Server Error'
     });
 });
 
