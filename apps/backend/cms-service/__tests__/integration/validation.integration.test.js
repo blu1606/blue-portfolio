@@ -46,7 +46,7 @@ describe('Integration: Validation System', () => {
         .set('Authorization', 'Bearer valid-token')
         .field('title', 'Test Post with Files')
         .field('content', 'This is test content for file upload')
-        .attach('files', Buffer.from('fake-image-data'), 'test.txt'); // Invalid file type
+        .attach('media', Buffer.from('fake-image-data'), 'test.txt'); // Invalid file type
 
       expect(response.status).toBe(400);
       expect(response.body.message).toContain('Only image files');
@@ -69,13 +69,13 @@ describe('Integration: Validation System', () => {
       expect(response.status).toBe(201);
       expect(response.body.success).toBe(true);
       expect(response.body.metadata).toHaveProperty('id');
-      expect(response.body.metadata.author_name).toBe('Test User');
-      expect(response.body.metadata.is_anonymous).toBe(true);
+      expect(response.body.metadata.authorName).toBe('Test User');
+      expect(response.body.metadata.isAnonymous).toBe(true);
     });
 
     it('should enforce rate limiting for anonymous feedback', async () => {
       const payload = {
-        authorName: 'Rate Limit Test',
+        authorName: 'Rate Test User',
         content: 'Testing rate limit functionality with valid content length'
       };
 
@@ -137,22 +137,17 @@ describe('Integration: Validation System', () => {
 
 describe('Integration: Error Handling', () => {
   it('should handle database connection errors gracefully', async () => {
-    // Temporarily break database connection
-    const originalSupabase = require('../../src/db/initSupabase');
-    
-    // Mock database error
-    jest.doMock('../../src/db/initSupabase', () => ({
-      from: () => {
-        throw new Error('Database connection failed');
-      }
-    }));
-
     const response = await request(app)
-      .get('/api/v1/posts');
+      .post('/api/v1/posts')
+      .set('Authorization', 'Bearer db-error-token')
+      .send({
+        title: 'Test Post',
+        content: 'Test content'
+      });
 
     expect(response.status).toBe(500);
     expect(response.body.success).toBe(false);
-    expect(response.body.message).toContain('server error');
+    expect(response.body.message).toContain('Database connection failed');
   });
 
   it('should handle missing authentication properly', async () => {

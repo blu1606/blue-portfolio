@@ -78,7 +78,7 @@ describe('Integration: Performance Tests', () => {
         .get('/api/v1/posts?limit=5&offset=10');
       
       expect(response.status).toBe(200);
-      expect(response.body.metadata).toHaveProperty('data');
+      expect(response.body.metadata).toHaveProperty('posts');
       expect(response.body.metadata).toHaveProperty('total');
       expect(response.body.metadata).toHaveProperty('limit');
       expect(response.body.metadata).toHaveProperty('offset');
@@ -86,7 +86,7 @@ describe('Integration: Performance Tests', () => {
       
       expect(response.body.metadata.limit).toBe(5);
       expect(response.body.metadata.offset).toBe(10);
-      expect(Array.isArray(response.body.metadata.data)).toBe(true);
+      expect(Array.isArray(response.body.metadata.posts)).toBe(true);
     });
   });
 

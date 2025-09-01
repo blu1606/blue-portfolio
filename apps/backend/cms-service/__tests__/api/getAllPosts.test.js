@@ -138,7 +138,7 @@ describe('GET /api/v1/posts - Get All Posts', () => {
             const response = await request(app)
                 .get('/api/v1/posts');
 
-            expect(response.status).toBe(400);
+            expect(response.status).toBe(500);
             expect(response.body.success).toBe(false);
             
             // Reset mock

@@ -18,7 +18,8 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Content is required');
+            expect(response.body.message).toContain('must have required property');
+            expect(response.body.message).toContain('content');
         });
 
         it('should return 400 when author name is missing', async () => {
@@ -30,7 +31,8 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Author name is required');
+            expect(response.body.message).toContain('must have required property');
+            expect(response.body.message).toContain('authorName');
         });
 
         it('should return 400 when content is too short', async () => {
@@ -43,7 +45,7 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('at least 10 characters');
+            expect(response.body.message).toContain('must NOT have fewer than 10 characters');
         });
 
         it('should return 400 when content is too long', async () => {
@@ -57,7 +59,7 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('must not exceed 2000 characters');
+            expect(response.body.message).toContain('must NOT have more than 2000 characters');
         });
 
         it('should return 400 when email format is invalid', async () => {
@@ -71,7 +73,7 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('valid email address');
+            expect(response.body.message).toContain('must match format "email"');
         });
 
         it('should return 400 when rating is invalid', async () => {
@@ -85,7 +87,7 @@ describe('POST /api/v1/feedback/anonymous - Create Anonymous Feedback', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.success).toBe(false);
-            expect(response.body.message).toContain('Rating must be between 1 and 5');
+            expect(response.body.message).toContain('must be <= 5');
         });
     });
 

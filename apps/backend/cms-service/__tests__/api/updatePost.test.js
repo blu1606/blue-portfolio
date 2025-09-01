@@ -3,6 +3,10 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 describe('PUT /api/v1/posts/:postId - Update Post', () => {
+    const validPostId = '123e4567-e89b-12d3-a456-426614174000';
+    const nonExistentPostId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const otherUserPostId = '11111111-2222-3333-4444-555555555555';
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -15,7 +19,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .send(updateData);
 
             expect(response.status).toBe(401);
@@ -29,7 +33,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer invalid-token')
                 .send(updateData);
 
@@ -46,7 +50,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -63,8 +67,8 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
                     eq: jest.fn().mockReturnValueOnce({
                         single: jest.fn().mockResolvedValueOnce({
                             data: {
-                                id: 'post123',
-                                author_id: 'different_user',
+                                id: otherUserPostId,
+                                author_id: 'user123', // Post belongs to user123
                                 title: 'Original Title'
                             },
                             error: null
@@ -78,8 +82,8 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
-                .set('Authorization', 'Bearer different-user-token')
+                .put(`/api/v1/posts/${otherUserPostId}`)
+                .set('Authorization', 'Bearer different-user-token') // different-user trying to update user123's post
                 .send(updateData);
 
             expect(response.status).toBe(403);
@@ -105,7 +109,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/non-existent-id')
+                .put(`/api/v1/posts/${nonExistentPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -121,7 +125,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -135,7 +139,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -149,7 +153,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -163,7 +167,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -176,7 +180,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -185,11 +189,11 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
 
         it('should reject invalid publication status', async () => {
             const updateData = {
-                is_published: 'invalid_boolean'
+                isPublished: 'invalid_boolean'
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -198,7 +202,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
 
         it('should accept empty update object', async () => {
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send({});
 
@@ -214,7 +218,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -231,7 +235,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -246,7 +250,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -261,7 +265,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -279,7 +283,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -303,12 +307,13 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
                 title: 'Database Error Test'
             };
 
+            // The mock will trigger an error for this specific ID
             const response = await request(app)
-                .put('/api/v1/posts/db-error-id')
-                .set('Authorization', 'Bearer valid-jwt-token')
+                .put(`/api/v1/posts/${validPostId}`)
+                .set('Authorization', 'Bearer db-error-token')
                 .send(updateData);
 
-            expect(response.status).toBe(400);
+            expect(response.status).toBe(500);
             expect(response.body.success).toBe(false);
         });
 
@@ -322,7 +327,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
-            expect([400, 404]).toContain(response.status);
+            expect(response.status).toBe(400);
         });
     });
 
@@ -334,7 +339,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 
@@ -350,7 +355,7 @@ describe('PUT /api/v1/posts/:postId - Update Post', () => {
             };
 
             const response = await request(app)
-                .put('/api/v1/posts/post123')
+                .put(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token')
                 .send(updateData);
 

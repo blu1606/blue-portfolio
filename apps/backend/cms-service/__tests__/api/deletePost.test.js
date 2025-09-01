@@ -3,6 +3,10 @@ const request = require('supertest');
 const app = require('../../src/app');
 
 describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
+    const validPostId = '123e4567-e89b-12d3-a456-426614174000';
+    const nonExistentPostId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+    const otherUserPostId = '11111111-2222-3333-4444-555555555555';
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -10,7 +14,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
     describe('Authentication Required', () => {
         it('should return 401 when no authorization header is provided', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123');
+                .delete(`/api/v1/posts/${validPostId}`);
 
             expect(response.status).toBe(401);
             expect(response.body.success).toBe(false);
@@ -18,7 +22,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
 
         it('should return 401 when invalid token is provided', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer invalid-token');
 
             expect(response.status).toBe(401);
@@ -29,7 +33,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
     describe('Authorization Tests', () => {
         it('should allow author to delete their own post', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -39,7 +43,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
 
         it('should return 403 when user tries to delete post they do not own', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${otherUserPostId}`)
                 .set('Authorization', 'Bearer different-user-token');
 
             expect(response.status).toBe(403);
@@ -61,7 +65,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
             });
 
             const response = await request(app)
-                .delete('/api/v1/posts/non-existent-id')
+                .delete(`/api/v1/posts/${nonExistentPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(404);
@@ -72,7 +76,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
     describe('Successful Deletion Tests', () => {
         it('should delete post and return success message', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -82,7 +86,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
 
         it('should invalidate cache after successful deletion', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -101,7 +105,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
             };
 
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -111,7 +115,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
         it('should handle deletion of post with associated comments', async () => {
             // Comments should be handled via database CASCADE or explicit deletion
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -122,7 +126,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
     describe('Response Format Tests', () => {
         it('should return success response with correct structure', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -133,7 +137,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
 
         it('should not return sensitive information in response', async () => {
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response.status).toBe(200);
@@ -185,7 +189,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
             );
 
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             // Should still succeed even if cloudinary deletion fails
@@ -243,7 +247,7 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
             const startTime = Date.now();
             
             const response = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             const endTime = Date.now();
@@ -258,12 +262,12 @@ describe('DELETE /api/v1/posts/:postId - Delete Post', () => {
         it('should handle repeated deletion attempts gracefully', async () => {
             // First deletion
             const response1 = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             // Second deletion attempt
             const response2 = await request(app)
-                .delete('/api/v1/posts/post123')
+                .delete(`/api/v1/posts/${validPostId}`)
                 .set('Authorization', 'Bearer valid-jwt-token');
 
             expect(response1.status).toBe(200);

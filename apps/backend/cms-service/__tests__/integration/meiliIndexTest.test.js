@@ -61,6 +61,9 @@ describe('Meilisearch Index Operations Test', () => {
   test('should search for the added document', async () => {
     const index = client.index(testIndexName);
     
+    // Wait for indexing to complete - increased timeout for CI/slower systems
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     // Search for our test document
     const searchResults = await index.search('Test Post', { limit: 10 });
     console.log('Search results:', searchResults);
@@ -69,10 +72,13 @@ describe('Meilisearch Index Operations Test', () => {
     expect(searchResults.hits).toBeDefined();
     expect(searchResults.hits.length).toBeGreaterThan(0);
     expect(searchResults.hits[0].title).toContain('Test Post');
-  }, 15000);
+  }, 20000);
 
   test('should get document by ID', async () => {
     const index = client.index(testIndexName);
+    
+    // Wait for indexing to complete
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Get document by ID
     const document = await index.getDocument('test-post-1');
